@@ -1,2 +1,3 @@
 (library
- (name WaveFunctionCollapse))
+ (name WaveFunctionCollapse)
+ (libraries vector))
