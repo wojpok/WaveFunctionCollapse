@@ -1,4 +1,5 @@
 
+
 type 'a node = 
 | Node of int * 'a * 'a node * 'a node
 | Empty

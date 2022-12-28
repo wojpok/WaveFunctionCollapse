@@ -5,15 +5,15 @@
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github wojpok/WaveFunctionCollapse))
 
-(authors "Author Name")
+(authors "Woj Pok")
 
 (maintainers "Maintainer Name")
 
 (license LICENSE)
 
-(documentation https://url/to/documentation)
+(documentation https://hackmd.io/tKDH0bNGTH-vkeymuzAsOw)
 
 (package
  (name WaveFunctionCollapse)

@@ -1,0 +1,3 @@
+(library
+  (name dim)
+  (libraries vector))

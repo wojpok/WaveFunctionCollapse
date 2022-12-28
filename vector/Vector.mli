@@ -1,5 +1,11 @@
 
-type 'a vector
+
+(* Publicly available vector definition, I have no idea how to hide type and make GADT work *)
+type 'a node = 
+| Node of int * 'a * 'a node * 'a node
+| Empty
+
+type 'a vector = (int * 'a node)
 
 (* Createn empty array of size and fills with defauld element *)
 val empty : int -> 'a -> 'a vector
@@ -20,4 +26,5 @@ val size : 'a vector -> int
 
 (* Special operation - fast sublist calculation *)
 val sublist : int -> int -> 'a vector -> 'a list
-val sublist_with_append : int -> int -> 'a list -> 'a vector -> 'a list 
+val sublist_with_append : int -> int -> 'a list -> 'a vector -> 'a list
+
