@@ -17,7 +17,7 @@
 
 (package
  (name WaveFunctionCollapse)
- (synopsis "A short synopsis")
+ (synopsis "WaveFunctionCollapse")
  (description "A longer description")
  (depends ocaml dune)
  (tags

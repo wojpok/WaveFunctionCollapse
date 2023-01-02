@@ -39,3 +39,10 @@ let rec string_of_dlist : type a b. (a, b) dim_descriptor -> a -> string =
       let m = List.map (fun x -> (string_of_dlist (tpa, VecRoot) x)) mxs in 
       "[" ^ (List.fold_right (fun x y -> x ^ "; " ^ y) m "]")
     | ListRoot, _ -> string_of_int mxs  
+
+
+let rec mindex : type a b. (a, b) dim_descriptor -> int list -> b -> t list = 
+  fun desc inds vec -> 
+    match desc, inds with
+    | (_, VecDim tpb), ind :: inds ->
+      mindex (ListRoot, tpb) inds (find ind ) 

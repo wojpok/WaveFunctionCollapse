@@ -1,5 +1,4 @@
 
-
 (* Publicly available vector definition, I have no idea how to hide type and make GADT work *)
 type 'a node = 
 | Node of int * 'a * 'a node * 'a node
