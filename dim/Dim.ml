@@ -41,8 +41,45 @@ let rec string_of_dlist : type a b. (a, b) dim_descriptor -> a -> string =
     | ListRoot, _ -> string_of_int mxs  
 
 
-let rec mindex : type a b. (a, b) dim_descriptor -> int list -> b -> t list = 
+let rec mindex : type a b. (a, b) dim_descriptor -> int list -> b -> t = 
   fun desc inds vec -> 
     match desc, inds with
     | (_, VecDim tpb), ind :: inds ->
-      mindex (ListRoot, tpb) inds (find ind ) 
+      mindex (ListRoot, tpb) inds (find ind vec)
+    | (_, VecRoot), _ -> vec 
+    | _ -> failwith "mindex - error"
+
+
+let rec msub_list_append : type a b. (a, b) dim_descriptor -> (int * int) list -> b -> t list -> t list =
+  fun desc inds vec acc ->
+    match desc with
+    | (_, VecDim VecRoot) ->
+      let (f, t) = List.hd inds in
+      sublist_with_append f t acc vec
+    | (_, VecDim tpb) ->
+      let (f, t) = List.hd inds in
+      let subl = sublist f t vec in
+      List.fold_right 
+        (fun x acc -> msub_list_append (ListRoot, tpb) (List.tl inds) x acc)
+        subl
+        acc
+    | _ -> failwith "msub_list_append - 'All fucked up' ~ Iggy Pop"
+
+let msub_list desc inds vec = msub_list_append desc inds vec []
+
+let rec msize : type a b. (a, b) dim_descriptor -> b -> int list = 
+  fun desc vec -> 
+    match desc with
+    | (_, VecRoot) -> []
+    | (_, VecDim tpb) ->
+      (size vec) :: (msize (ListRoot, tpb) (find 0 vec))
+
+let basic_map = dvector_of_dlist dim2 
+  [
+    [1; 2; 3; 4; 5];
+    [6; 7; 8; 9; 0];
+    [1; 2; 3; 4; 5];
+    [6; 7; 8; 9; 0];
+    [1; 2; 3; 4; 5]
+  ]
+
