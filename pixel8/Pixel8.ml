@@ -47,6 +47,6 @@ let test () = show_pixel8_map [
   [Cyan; Red];
   [Red; Pink];
   [Pink; Yellow];
-  [Yellow; White];
+  [Yellow; Black];
   [White; Black]
 ] 

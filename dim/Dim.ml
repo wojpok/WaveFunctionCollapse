@@ -74,6 +74,7 @@ let rec msize : type a b. (a, b) dim_descriptor -> b -> int list =
     | (_, VecDim tpb) ->
       (size vec) :: (msize (ListRoot, tpb) (find 0 vec))
 
+      (*
 let basic_map = dvector_of_dlist dim2 
   [
     [1; 2; 3; 4; 5];
@@ -82,4 +83,4 @@ let basic_map = dvector_of_dlist dim2
     [6; 7; 8; 9; 0];
     [1; 2; 3; 4; 5]
   ]
-
+*)

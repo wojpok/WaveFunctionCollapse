@@ -6,7 +6,7 @@ let test_map = [
   [20; 21; 22; 23; 24]
 ]
 
-let test_vec = Dim.dvector_of_dlist Dim.dim2 test_map 
+let test_vec () = Dim.dvector_of_dlist Dim.dim2 test_map 
 
 module S = struct
   type t = int list
@@ -23,7 +23,7 @@ module S = struct
     | [],     []     ->  0
 end
 
-let dims = Dim.msize Dim.dim2 test_vec
+let dims () = Dim.msize Dim.dim2 (test_vec())
 
 let rec gen xs size =
   let rec iter n xss acc =
@@ -42,10 +42,10 @@ let rec gen xs size =
     let acc = gen xs size in
     iter (x - 1 - size) acc []
     
-let patterns = gen dims 2 |> List.map (fun x -> Dim.msub_list Dim.dim2 x test_vec )
+let patterns() = gen (dims()) 2 |> List.map (fun x -> Dim.msub_list Dim.dim2 x test_vec )
 
 module M = Dms.Make(S)
 
-let collection = List.fold_right (fun x acc -> M.insert x acc) patterns M.empty 
+let collection() = List.fold_right (fun x acc -> M.insert x acc) (patterns()) M.empty 
 
-let uncollected = List.map (fun x -> M.random x collection) [0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 10]
+let uncollected() = List.map (fun x -> M.random x (collection())) [0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 10]

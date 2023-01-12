@@ -1,3 +1,4 @@
+(*
 let test = Vector.vector_of_list [1; 2; 3; 4; 5; 6] |> Vector.list_of_vector
 
 let rec pr = function
@@ -10,4 +11,5 @@ let () = print_endline (Dim.string_of_dlist Dim.dim2 [[1; 2; 6; 7; 8; 9; 2;]; [7
 
 module DMS = Dms.Make(Int)
 
+*)
 
