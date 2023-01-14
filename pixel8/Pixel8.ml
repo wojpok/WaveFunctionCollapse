@@ -24,6 +24,10 @@ let pixel8_code = function
 let compare px1 px2 = 
   Int.compare (pixel8_code px1) (pixel8_code px2)
 
+let stringify = function
+  | Some pix -> Printf.sprintf "\\e[30;4%dm " (pixel8_code pix)
+  | None -> "\\e[30;40m_"
+
 let pixel8_color px = 
   Printf.sprintf "\\e[30;4%dm" (pixel8_code px)
 

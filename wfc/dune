@@ -1,0 +1,3 @@
+(library
+  (name wfc)
+  (libraries vector dim bt dms pixel8))
