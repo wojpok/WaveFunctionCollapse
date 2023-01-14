@@ -108,6 +108,13 @@ open Vector
     | x :: xs ->
       let acc = get_subvector_ids xs size in
       iter (x - 1 - size) acc []
+
+  let rec dims : type a b. (a, b) dim_descriptor -> int =
+    fun desc ->
+      match desc with
+      | ListDim tpa, VecDim tpb -> 1 + (dims (tpa, tpb))
+      | ListRoot, VecRoot -> 0
+      | _ -> failwith "dims - invalid descriptor"
    
 end
 

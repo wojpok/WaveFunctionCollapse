@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+
+  <style>
+    .rect {
+      width: 50px;
+      height: 50px;
+      border: 1px solid black;
+      float: left;
+    }
+
+    .clear {
+      clear: both;
+    }
+
+    .white {
+      background-color: white;
+    }
+
+    .black {
+      background-color: black;
+    }
+
+    .red {
+      background-color: red;
+    }
+
+    .yellow {
+      background-color: yellow;
+    }
+
+    .btn {
+      float: left;
+      height: 50px;
+      width: 50px;
+    }
+
+    .gen {
+      float: left;
+      height: 50px;
+      width: 50px;
+    }
+
+    #res {
+      font-size: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="clickables">
+    <div class="btn black">black</div>
+    <div class="btn white">white</div>
+    <div class="btn yellow">yellow</div>
+    <div class="btn red">red</div>
+    <div class="gen">Generate</div>
+    <div class="clear"></div>
+  </div>
+  <br><br>
+  <div class="canva">
+
+  </div>  
+
+  <pre id="res">
+    let arr = let open Pixel in [
+      [Red; Yellow]
+    ]
+  </pre>
+</body>
+
+<script>
+  const h = 16
+  const w = 16
+
+  const $ = a => document.querySelector(a)
+  const $$ = a => document.querySelectorAll(a)
+
+  const canva = $('.canva')
+  const toolbar = $('.clickables')
+
+  let selectedColor = "black"
+
+  const init = (h, w) => {
+    let acc = ''
+
+    for(let i = 0; i < h; i++) {
+      for(let j = 0; j < w; j++) {
+        acc += '<div class="rect white"></div>'
+      }
+
+      acc += '<div class="clear"></div>'
+    }
+
+    canva.innerHTML = acc
+
+    $$('.rect').forEach(e => e.addEventListener('click', (e) => {
+      //console.log(e.target)
+      e.target.className = 'rect '+selectedColor
+    }));
+
+    $$('.btn').forEach(e => e.addEventListener('click', e => {
+      selectedColor = e.target.className.split(' ')[1]
+    }))
+
+    let capitalize = (word) => {
+      const firstLetter = word.charAt(0)
+
+      const firstLetterCap = firstLetter.toUpperCase()
+
+      const remainingLetters = word.slice(1)
+
+      const capitalizedWord = firstLetterCap + remainingLetters
+
+      return capitalizedWord
+    }
+
+    $('.gen').addEventListener('click', e => {
+      acc = 'let arr = let open Pixel8 in ['
+
+      let cnt = 0
+      $$('.rect').forEach(e => {
+        if(cnt % w == 0)
+          acc += '\n\t['
+        
+        //console.log(e.className)
+        acc += capitalize( e.className.split(' ')[1]) + ';'
+
+        cnt++
+
+        if(cnt %16 == 0)
+          acc += '];'
+      })
+
+      acc += '\n]'
+
+      $('#res').innerHTML = acc
+    })
+  }
+
+  init(h, w)
+</script>
+
+</html>
