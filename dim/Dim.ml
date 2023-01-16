@@ -115,6 +115,15 @@ open Vector
       | ListDim tpa, VecDim tpb -> 1 + (dims (tpa, tpb))
       | ListRoot, VecRoot -> 0
       | _ -> failwith "dims - invalid descriptor"
-   
+
+
+  let index_offset precision index =
+    let len = precision * 2 + 1 in
+    List.fold_left begin
+      fun acc x -> 
+        len * acc + (x + precision)
+    end
+    0
+    index
 end
 

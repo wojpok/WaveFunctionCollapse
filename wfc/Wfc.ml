@@ -39,21 +39,23 @@ module M = Dms.Make(PixelList)
 
 module Dim = Dim.Make(Pixel8)
 
-let wfc : type a b. (a, b) Dim.dim_descriptor -> config -> a -> M.t =
+module Ent = Ent.Make(PixelList)
+
+let wfc : type a b. (a, b) Dim.dim_descriptor -> config -> a -> Ent.collection =
   fun desc conf inp ->
     (* dims *)
     let dims = Dim.dims desc in
     (* Config *)
-    let repl, precision = conf in
+    let repl, precision, (rots, syms) = conf in
     (* Conversion to vector *)
     let def_map = Dim.dvector_of_dlist desc inp in
     (* all_subvector boundaries *)
     let sub_boundaries = Dim.get_subvector_ids (Dim.msize desc def_map) (precision * 2) in
     (* get all permutations *)
-    let perms = Perm.get_permutator dims precision true true in 
+    let perms = Perm.get_permutator dims precision rots syms in 
     let app_perm xs states = 
       List.fold_left 
-        (fun acc el -> M.insert el acc)
+        (fun acc el -> Ent.insert el acc)
         states
         (Perm.app_perm perms xs)
       in
@@ -63,10 +65,13 @@ let wfc : type a b. (a, b) Dim.dim_descriptor -> config -> a -> M.t =
         (fun acc el -> 
           let sub = Dim.msub_list desc el def_map in
           app_perm sub acc)
-        M.empty
+        Ent.empty
         sub_boundaries
         in
+    let entropy = Ent.compress_collection random_state in
+    let initial_entropy = Ent.get_entropy entropy in
     ignore repl;
-    ignore random_state;
+    print_endline (string_of_float initial_entropy);
     random_state
 
+let test() = wfc Dim.dim2 (false, 1, (true, true)) test_map

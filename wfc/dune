@@ -1,3 +1,3 @@
 (library
   (name wfc)
-  (libraries vector dim bt dms pixel8 str repl perm))
+  (libraries vector dim bt dms pixel8 str repl perm ent))
