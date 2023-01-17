@@ -37,7 +37,15 @@ open Vector
         list_of_vector mv |> List.map (fun x -> dlist_of_dvector (tpa, tpb) x)
       | ListRoot, VecRoot -> mv
       | _ -> failwith "dlist_of_dvector - invalid descriptor"
-
+  
+  let rec initialize_dvector : type a b. (a, b) dim_descriptor -> t -> int list -> b =
+    fun desc elem inds ->
+      match desc, inds with
+      | (_, VecRoot), _ -> elem
+      | (_, VecDim tpb), i :: inds ->
+        empty i (initialize_dvector (ListRoot, tpb) elem inds)
+      | _ -> failwith "initialize_dvector - invalid dimensions" 
+    
       (*
   let rec string_of_dlist : type a b. (a, b) dim_descriptor -> a -> string =
     fun desc mxs ->
@@ -125,5 +133,22 @@ open Vector
     end
     0
     index
+
+  let rec get_all_indexes xs = 
+    let rec iter n xss acc =
+      if n < 0 then 
+        acc
+      else
+        let res = List.fold_right
+          (fun x acc -> (n :: x) :: acc)
+          xss acc 
+        in
+        iter (n - 1) xss res
+    in
+    match xs with
+    | [] -> [[]]
+    | x :: xs ->
+      let acc = get_all_indexes xs in
+      iter (x - 1) acc []
 end
 

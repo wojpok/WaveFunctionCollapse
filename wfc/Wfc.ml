@@ -35,14 +35,34 @@ let test_map = let open Pixel8 in [
 ]
 
 
+
 module M = Dms.Make(PixelList)
 
-module Dim = Dim.Make(Pixel8)
+
 
 module Ent = Ent.Make(PixelList)
 
-let wfc : type a b. (a, b) Dim.dim_descriptor -> config -> a -> Ent.collection =
-  fun desc conf inp ->
+type pixel_state = 
+| Collapsed of Pixel8.t
+| Unobserved of Ent.entropy
+
+module PixelState = struct
+  type t = pixel_state
+end
+
+module Grid = Dim.Make(PixelState)
+
+module Dim = Dim.Make(Pixel8)
+
+module Index = struct
+  type t = int list
+  let compare = List.compare Int.compare
+end
+
+module Stack = Stack.Make(Index)
+
+let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor -> config -> a -> Ent.collection =
+  fun desc grid_desc conf inp ->
     (* dims *)
     let dims = Dim.dims desc in
     (* Config *)
@@ -70,8 +90,10 @@ let wfc : type a b. (a, b) Dim.dim_descriptor -> config -> a -> Ent.collection =
         in
     let entropy = Ent.compress_collection random_state in
     let initial_entropy = Ent.get_entropy entropy in
+    let grid = Grid.initialize_dvector grid_desc (Unobserved entropy) [100; 100] in
+    ignore grid;
     ignore repl;
     print_endline (string_of_float initial_entropy);
     random_state
 
-let test() = wfc Dim.dim2 (false, 1, (true, true)) test_map
+let test() = wfc Dim.dim2 Grid.dim2 (false, 1, (true, true)) test_map
