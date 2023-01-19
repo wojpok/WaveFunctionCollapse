@@ -20,7 +20,7 @@ val list_of_vector : 'a vector -> 'a list
 (* Some standard operaions *)
 val find : int -> 'a vector -> 'a
 val insert : int -> 'a -> 'a vector -> 'a vector
-val update : int -> ('a -> 'a) -> 'a vector -> 'a * 'a vector
+val update : int -> ('a -> 'a) -> 'a vector -> 'a vector
 val size : 'a vector -> int
 
 (* Special operation - fast sublist calculation *)

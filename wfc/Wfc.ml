@@ -61,7 +61,7 @@ end
 
 module Stack = Stack.Make(Index)
 
-let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor -> config -> a -> Ent.collection =
+let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor -> config -> a -> d =
   fun desc grid_desc conf inp ->
     (* dims *)
     let dims = Dim.dims desc in
@@ -90,13 +90,61 @@ let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor 
         in
     let entropy = Ent.compress_collection random_state in
     let initial_entropy = Ent.get_entropy entropy in
-    let grid_size = [100; 100] in
+    let grid_size = [10; 10] in
     let grid = Grid.initialize_dvector grid_desc (Unobserved entropy) grid_size in
     let stack = Stack.of_seq initial_entropy @@ Iter.index_seq grid_size in
-    ignore stack;
-    ignore grid;
+    let random = Rand.rand @@ Rand.hash 0 in
+    let rec loop random stack grid = 
+      match Seq.uncons random with
+      | None -> failwith "rand"
+      | Some (randv1, random) -> 
+      match Seq.uncons random with
+      | None -> failwith "rand"
+      | Some (randv2, random) -> 
+      let (stack, ind) = Stack.pop_random randv1 stack in
+      match ind with
+      | None -> grid
+      | Some ind ->
+      match Grid.mindex grid_desc ind grid with
+      | Collapsed _ -> failwith "Observing already observed"
+      | Unobserved ent ->
+      let observation = Ent.collapse randv2 ent in
+      let cell = List.nth observation 4 in (* TODO this should depend on dims *)
+      let grid = Grid.mset grid_desc ind (Collapsed cell) grid in
+      let neight = Iter.propagate_collapse grid_size precision ind in
+      let (grid, stack) = Seq.fold_left begin fun (grid, stack) (inds, offset) ->
+        match Grid.mindex grid_desc inds grid with
+        | Collapsed _ -> (grid, stack)
+        | Unobserved ent -> 
+          let nent = Ent.filter (fun x -> cell = (List.nth x offset)) ent in
+          let grid = Grid.mset grid_desc inds (Unobserved nent) grid in
+          let stack = Stack.decrease_key (Ent.get_entropy ent) (Ent.get_entropy nent) inds stack in
+          (grid, stack) 
+      end (grid, stack) neight in 
+      ignore random;
+      ignore stack;
+      ignore loop;
+      if true then
+        loop random stack grid
+      else
+        grid
+    in
     ignore repl;
-    print_endline (string_of_float initial_entropy);
-    random_state
+    loop (fun () -> random) stack grid
 
 let test() = wfc Dim.dim2 Grid.dim2 (false, 1, (true, true)) test_map
+
+
+let show_partial grid = 
+  let xss = Grid.dlist_of_dvector Grid.dim2 grid in
+  let str = List.fold_right begin fun xs acc ->
+    List.fold_right begin fun x acc ->
+      let x = match x with
+      | Unobserved _ -> None
+      | Collapsed v -> Some v in
+      (Pixel8.stringify x) ^ acc 
+    end xs "\n" ^ acc
+  end xss ""
+  in
+  ignore (Sys.command ("echo -e \"" ^ str ^ "\""))
+

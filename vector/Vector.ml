@@ -95,15 +95,15 @@ let update id trans (len, vec) =
     match Int.compare ic id with
     | 0 -> 
       let nv = trans el in
-      nv, Node(ic, nv, l, r)
+      Node(ic, nv, l, r)
     | -1 -> (* id jest większe*)
-      let (nv, n) = iter r in
-      nv, Node(ic, el, l, n)
+      let n = iter r in
+      Node(ic, el, l, n)
     | _ -> 
-      let (nv, n) = iter l in
-      nv, Node(ic, el, n, r)
+      let n = iter l in
+      Node(ic, el, n, r)
   in
-  let (nv, n) = iter vec in
-  nv, (len, n)
+  let n = iter vec in
+  (len, n)
 
 let size (len, _) = len

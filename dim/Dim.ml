@@ -63,6 +63,15 @@ open Vector
         mindex (ListRoot, tpb) inds (find ind vec)
       | (_, VecRoot), _ -> vec 
       | _ -> failwith "mindex - error"
+  
+  let rec mset : type a b. (a, b) dim_descriptor -> int list -> t -> b -> b =
+    fun desc inds v vec ->
+      match desc, inds with
+      | (_, VecRoot), _ -> v
+      | (_, VecDim tpb), i :: inds ->
+        let vec = update i (fun vec -> mset (ListRoot, tpb) inds v vec) vec in
+        vec
+      | _ -> failwith "mse - error"
 
 
   let rec msub_list_append : type a b. (a, b) dim_descriptor -> (int * int) list -> b -> t list -> t list =

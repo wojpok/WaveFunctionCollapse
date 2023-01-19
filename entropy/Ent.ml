@@ -24,6 +24,9 @@ module Make(S : OrderedType) = struct
     col
 
   let recalc_entropy (card, _, xs) =
+    if card = 0 then 
+      0.
+    else
     List.fold_left begin
       fun acc (c, _) ->
         let prob = (float_of_int c) /. (float_of_int card) in
@@ -45,5 +48,25 @@ module Make(S : OrderedType) = struct
   let get_entropy (_, e, _) = e
 
   let filter : (key -> bool) -> entropy -> entropy = 
-    fun pred ent -> ignore pred; ent
+    fun pred (_, _, ent) ->
+      let (cx, xs) = List.fold_right begin fun (cx, x) (ca, a) ->
+        if pred x then
+          ((cx + ca), (cx, x) :: a)
+        else
+          (ca, a)
+      end ent (0, [])
+      in
+      (cx, recalc_entropy (cx, 0., xs),xs)
+
+  let collapse seed (c, _, ent) = 
+    let seed = seed mod c in
+    let rec iter seed xs = 
+      match xs with
+      | (cs, x) :: xs ->
+        if seed < cs then
+          x
+        else
+          iter (seed - cs) xs
+      | _ -> failwith "how..."
+    in iter seed ent
 end
