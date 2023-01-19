@@ -70,7 +70,7 @@ let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor 
     (* Conversion to vector *)
     let def_map = Dim.dvector_of_dlist desc inp in
     (* all_subvector boundaries *)
-    let sub_boundaries = Dim.get_subvector_ids (Dim.msize desc def_map) (precision * 2) in
+    let sub_boundaries = Iter.subvector_seq (Dim.msize desc def_map) precision  in
     (* get all permutations *)
     let perms = Perm.get_permutator dims precision rots syms in 
     let app_perm xs states = 
@@ -81,7 +81,7 @@ let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor 
       in
     (* generate state list *)
     let random_state = 
-      List.fold_left
+      Seq.fold_left
         (fun acc el -> 
           let sub = Dim.msub_list desc el def_map in
           app_perm sub acc)
@@ -90,7 +90,10 @@ let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor 
         in
     let entropy = Ent.compress_collection random_state in
     let initial_entropy = Ent.get_entropy entropy in
-    let grid = Grid.initialize_dvector grid_desc (Unobserved entropy) [100; 100] in
+    let grid_size = [100; 100] in
+    let grid = Grid.initialize_dvector grid_desc (Unobserved entropy) grid_size in
+    let stack = Stack.of_seq initial_entropy @@ Iter.index_seq grid_size in
+    ignore stack;
     ignore grid;
     ignore repl;
     print_endline (string_of_float initial_entropy);
