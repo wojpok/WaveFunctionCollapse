@@ -26,7 +26,7 @@ let compare px1 px2 =
 
 let stringify = function
   | Some pix -> Printf.sprintf "\\e[30;4%dm " (pixel8_code pix)
-  | None -> "\\e[30;40m_"
+  | None -> "\\e[30;40mX"
 
 
 let () = ignore stringify
@@ -36,8 +36,12 @@ let stringify = function
   | Some pix -> Printf.sprintf "%d" (pixel8_code pix)
   | None -> "_"
 *)
+
+
 let pixel8_color px = 
   Printf.sprintf "\\e[30;4%dm" (pixel8_code px)
+
+let newline = (pixel8_color Black) ^ "\n"
 
 
 let show_pixel8_map map =

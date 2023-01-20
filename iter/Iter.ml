@@ -45,3 +45,16 @@ let propagate_collapse dims prec xs =
   end ids in
   let ids = Seq.map2 (fun a b -> (a, b)) ids @@ index_dff dims prec in
   Seq.filter (fun (x, _) -> is_inbounds dims x) ids
+
+
+let middle_el_id dims prec =
+  let rec iter dims = 
+    if dims = 0 then
+      1
+    else
+      (2 * prec + 1) * (iter (dims - 1))
+  in
+  ((iter dims) - 1) / 2  
+
+
+

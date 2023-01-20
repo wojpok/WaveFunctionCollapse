@@ -46,6 +46,7 @@ module Make(S : OrderedType) = struct
   
 
   let get_entropy (_, e, _) = e
+  let get_card (c, _, _) = c
 
   let filter : (key -> bool) -> entropy -> entropy = 
     fun pred (_, _, ent) ->
@@ -69,4 +70,19 @@ module Make(S : OrderedType) = struct
           iter (seed - cs) xs
       | _ -> failwith "how..."
     in iter seed ent
+
+    let propagation_set (_, _, ent) = 
+      match ent with
+      | [] -> failwith "propagation empty"
+      | (_, xs) :: _ ->
+        let empties = List.map (fun _ -> []) xs in
+        let rec iter xs acc =
+          match xs with
+          | [] -> acc
+          | (_, x) :: xs ->
+          let res = List.map2 (fun x a -> if List.mem x a then a else x :: a) x acc in
+          iter xs res
+        in
+        let sets = iter ent empties in
+        List.rev @@ List.map (fun x -> (fun y -> List.mem y x)) sets
 end

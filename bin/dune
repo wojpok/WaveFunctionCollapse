@@ -1,4 +1,4 @@
 (executable
  (public_name WaveFunctionCollapse)
  (name main)
- (libraries WaveFunctionCollapse))
+ (libraries wfc))

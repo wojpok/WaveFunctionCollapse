@@ -12,4 +12,6 @@ let () = print_endline (Dim.string_of_dlist Dim.dim2 [[1; 2; 6; 7; 8; 9; 2;]; [7
 module DMS = Dms.Make(Int)
 
 *)
+let () = Printexc.record_backtrace true
+let () = Wfc.test()
 
