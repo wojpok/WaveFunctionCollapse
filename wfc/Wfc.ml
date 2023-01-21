@@ -78,8 +78,78 @@ let show_partial grid =
   in
   ignore (Sys.command ("echo -e \"" ^ str ^ "\""))
 
+
 let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor -> config -> (d -> unit) -> int -> a -> d =
+
+
   fun desc grid_desc conf helper fb inp ->
+    (* Monada stanów obliczeń *)
+    let module Computation = struct
+                  (* seed  grid     stack      backtracking             counter 
+      type ('a) t = (int * Grid.t * Stack.t * (Grid.t * Stack.t) list * int -> 'a * int * Grid.t * Stack.t * (Grid.t * Stack.t) list * int)
+      *)
+      let return x = fun (seed, grid, stack, bt, cnt) -> (x, seed, grid, stack, bt, cnt)
+      let bind m f = fun (seed, grid, stack, bt, cnt) -> 
+        let (x, seed, grid, stack, bt, cnt) = m (seed, grid, stack, bt, cnt) in 
+          f x (seed, grid, stack, bt, cnt)
+
+      let (>>=) = bind
+      let (>>>) a b = bind a (fun () -> b)
+
+      let run m (seed, grid, stack, bt, cnt) = m (seed, grid, stack, bt, cnt)
+
+      let random (seed, grid, stack, bt, cnt) = (seed, Rand.hash seed, grid, stack, bt, cnt)
+
+      let getStack   (seed, grid, stack, bt, cnt) = (stack, seed, grid, stack, bt, cnt)
+      let putStack stack (seed, grid, _, bt, cnt) = ((),    seed, grid, stack, bt, cnt)
+
+      let popRandom = 
+        random >>= fun r ->
+        getStack >>= fun stack ->
+        let (stack, el) = Stack.pop_random r stack in
+        putStack stack >>>
+        return el
+
+      let getGrid      (seed, grid, stack, bt, cnt) = (grid,  seed, grid, stack, bt, cnt)
+      let putGrid grid (seed, _,    stack, bt, cnt) = ((),    seed, grid, stack, bt, cnt)
+
+      let getFromGrid inds =
+        getGrid >>= fun grid ->
+        let el = Grid.mindex grid_desc inds grid in
+        return el 
+      
+      let putToGrid inds el =
+        getGrid >>= fun grid ->
+        putGrid @@ Grid.mset grid_desc inds el grid
+      
+      let getBt       (seed, grid, stack, bt, cnt) = (bt, seed, grid, stack,    bt, cnt)
+      let putBt state (seed, grid, stack,  _, cnt) = ((), seed, grid, stack, state, cnt)
+
+      let getCnt     (seed, grid, stack, bt, cnt) = (cnt, seed, grid, stack, bt, cnt)
+      let putCnt cnt (seed, grid, stack, bt, _)   = ((),  seed, grid, stack, bt, cnt)
+
+      let storeState el = 
+        getBt >>= fun bt ->
+        putBt @@ el :: bt >>>
+        getCnt >>= fun c -> 
+        putCnt (c - 1)
+      
+      let backtrack n =
+        getBt >>= fun bt ->
+        match List.nth_opt bt n with
+        | None -> return ()
+        | Some(grid, stack) ->
+          putStack stack >>>
+          putGrid grid 
+      
+    end in
+    let () = ignore Computation.backtrack;
+    ignore Computation.storeState;
+    ignore Computation.getFromGrid;
+    ignore Computation.putToGrid;
+    ignore Computation.popRandom;
+    ignore Computation.run
+    in
     (* dims *)
     let dims = Dim.dims desc in
     let fb = ref fb in
