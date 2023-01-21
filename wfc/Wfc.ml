@@ -79,10 +79,10 @@ let show_partial grid =
   ignore (Sys.command ("echo -e \"" ^ str ^ "\""))
 
 
-let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor -> config -> (d -> unit) -> int -> a -> d =
+let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor -> config -> (d -> unit)  -> a -> d =
 
 
-  fun desc grid_desc conf helper fb inp ->
+  fun desc grid_desc conf helper inp ->
     (* Monada stanów obliczeń *)
     let module Computation = struct
                   (* seed  grid     stack      backtracking             counter 
@@ -96,7 +96,8 @@ let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor 
       let (>>=) = bind
       let (>>>) a b = bind a (fun () -> b)
 
-      let run m (seed, grid, stack, bt, cnt) = m (seed, grid, stack, bt, cnt)
+      let run m (seed, grid, stack, bt, cnt) = 
+        let (res, _, _, _, _, _) = m (Rand.hash seed, grid, stack, bt, cnt) in res
 
       let random (seed, grid, stack, bt, cnt) = (seed, Rand.hash seed, grid, stack, bt, cnt)
 
@@ -109,6 +110,10 @@ let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor 
         let (stack, el) = Stack.pop_random r stack in
         putStack stack >>>
         return el
+
+      let decreaseKey f t k =
+        getStack >>= fun s ->
+        putStack @@ Stack.decrease_key f t k s
 
       let getGrid      (seed, grid, stack, bt, cnt) = (grid,  seed, grid, stack, bt, cnt)
       let putGrid grid (seed, _,    stack, bt, cnt) = ((),    seed, grid, stack, bt, cnt)
@@ -128,9 +133,11 @@ let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor 
       let getCnt     (seed, grid, stack, bt, cnt) = (cnt, seed, grid, stack, bt, cnt)
       let putCnt cnt (seed, grid, stack, bt, _)   = ((),  seed, grid, stack, bt, cnt)
 
-      let storeState el = 
+      let storeState =
+        getGrid >>= fun grid ->
+        getStack >>= fun stack -> 
         getBt >>= fun bt ->
-        putBt @@ el :: bt >>>
+        putBt @@ (grid, stack) :: bt >>>
         getCnt >>= fun c -> 
         putCnt (c - 1)
       
@@ -152,11 +159,9 @@ let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor 
     in
     (* dims *)
     let dims = Dim.dims desc in
-    let fb = ref fb in
     (* Config *)
     let repl, precision, (rots, syms), seed, grid_size = conf in
     let middle_el_id = Iter.middle_el_id dims precision in
-    let () = print_int middle_el_id in
     (* Conversion to vector *)
     let def_map = Dim.dvector_of_dlist desc inp in
     (* all_subvector boundaries *)
@@ -182,60 +187,62 @@ let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor 
     let initial_entropy = Ent.get_entropy entropy in
     let grid = Grid.initialize_dvector grid_desc (Unobserved entropy) grid_size in
     let stack = Stack.of_seq initial_entropy @@ Iter.index_seq grid_size in
-    let random = Rand.rand @@ Rand.hash seed in
-    let rec loop random stack grid = 
-      let () = fb := (!fb - 1) in
-      if !fb = 0 then 
-        grid
-      else
-      match Seq.uncons random with
-      | None -> failwith "rand"
-      | Some (randv1, random) -> 
-      match Seq.uncons random with
-      | None -> failwith "rand"
-      | Some (randv2, random) -> 
-      let (stack, ind) = Stack.pop_random randv1 stack in
-      match ind with
-      | None -> grid
-      | Some ind ->
-      match Grid.mindex grid_desc ind grid with
-      | Collapsed _ -> failwith "Observing already observed"
+    
+    let (let* ) = Computation.bind in
+    let (>>>) a b = Computation.bind a (fun () -> b) in
+    let (>>=)  = Computation.bind in
+
+    let rec loop () = 
+      let* el = Computation.popRandom in
+      match el with
+      | None -> Computation.return grid
+      | Some inds ->
+      let* cellState = Computation.getFromGrid inds in
+      match cellState with
+      | Collapsed _ -> loop ()
       | Unobserved ent ->
       let e = Ent.get_card ent in
       if e = 0 then
         let () = print_endline "";
-                 print_int @@ List.hd ind;
+                 print_int @@ List.hd inds;
                  print_endline "";
-                 print_int @@ List.hd @@ List.tl ind
+                 print_int @@ List.hd @@ List.tl inds
         in
-        grid
+        Computation.return grid
       else
-      let observation = Ent.collapse randv2 ent in
+      let* randv = Computation.random in
+
+      let observation = Ent.collapse randv ent in
       let propagation = Ent.propagation_set ent in
-      let cell = List.nth observation middle_el_id in (* TODO this should depend on dims *)
-      let grid = Grid.mset grid_desc ind (Collapsed cell) grid in
-      let neight = Iter.propagate_collapse grid_size precision ind in
-      let (grid, stack) = Seq.fold_left begin fun (grid, stack) (inds, offset) ->
-        match Grid.mindex grid_desc inds grid with
-        | Collapsed _ -> (grid, stack)
+
+      let cell = List.nth observation middle_el_id in
+      
+      Computation.putToGrid inds (Collapsed cell) >>>
+
+      let neight = Iter.propagate_collapse grid_size precision inds in
+
+      let rec iter = function
+      | [] -> Computation.return ()
+      | (inds, offset) :: xs ->
+        Computation.getFromGrid inds >>= fun el ->
+        match el with
+        | Collapsed _ -> iter xs
         | Unobserved ent -> 
           let pred = List.nth propagation offset in
           let nent = Ent.filter (fun x -> ( (cell = (List.nth x offset)) && (pred (List.nth x middle_el_id)))) ent in
-          let grid = Grid.mset grid_desc inds (Unobserved nent) grid in
-          let stack = Stack.decrease_key (Ent.get_entropy ent) (Ent.get_entropy nent) inds stack in
-          (grid, stack) 
-      end (grid, stack) neight in 
-      ignore random;
-      ignore stack;
-      ignore loop;
-      if true then
-        let () = helper grid in
-        loop random stack grid
-      else
-        grid
+
+          Computation.putToGrid inds (Unobserved nent) >>>
+          Computation.decreaseKey (Ent.get_entropy ent) (Ent.get_entropy nent) inds >>> 
+          iter xs
+      in
+      iter (List.of_seq neight) >>>
+      Computation.storeState >>>
+      Computation.getGrid >>= fun x ->
+      helper x;
+      loop ()
     in
     ignore repl;
-    loop (fun () -> random) stack grid
+    Computation.run (loop()) (seed, grid, stack, [], -1)
 
 let test seed x map = wfc Dim.dim2 Grid.dim2 (false, 1, (true, true), seed, [x; x]) (show_partial) map
 
