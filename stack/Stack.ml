@@ -3,12 +3,22 @@ module type OrderedType = sig
   val compare : t -> t -> int
 end
 
-module Make(S : OrderedType) = struct
+module type S = sig
+  type key
+  type t
 
-  type key = S.t
-  let comp = S.compare
+  val of_seq : float -> key Seq.t -> t
+  val pop_random : int -> t -> t * key option
+  
+  val decrease_key : float -> float -> key -> t -> t
+end
 
-  module RS = Ds.Make(S)
+
+module Make(Key : OrderedType) : S with type key = Key.t = struct
+
+  type key = Key.t
+
+  module RS = Ds.Make(Key)
 
   module L = Map.Make(Float)
 
@@ -56,4 +66,5 @@ module Make(S : OrderedType) = struct
       | Some v ->
         Some(RS.insert el v)
     end stack in stack
+
 end

@@ -16,20 +16,39 @@ module PixelList = struct
   let compare = List.compare Pixel8.compare
 end
 
-
 module Ent = Ent.Make(PixelList)
 
 type pixel_state = 
 | Collapsed of Pixel8.t
 | Unobserved of Ent.entropy
 
+let cell_of_pixel = function
+| Collapsed px -> Some px
+| Unobserved _ -> None
+
 module PixelState = struct
   type t = pixel_state
 end
 
-module Grid = Dim.Make(PixelState)
+module Grid      = Dim.Make(PixelState)
+module DimOption = Dim.Make(struct type t = Pixel8.t option end)
+module Dim       = Dim.Make(Pixel8)
 
-module Dim = Dim.Make(Pixel8)
+
+
+let doptlist_of_dgrid : type a b c d. (a, b) DimOption.dim_descriptor -> (c, d) Grid.dim_descriptor -> (Grid.t -> DimOption.t) -> d -> a =
+  fun desc grid_desc f grid ->
+  let xss : c = Grid.dlist_of_dvector grid_desc grid in
+  let rec iter_map : type a b c d. (a, b) DimOption.dim_descriptor -> (c, d) Grid.dim_descriptor -> c -> a =
+    fun desc grid_desc xss ->
+      match desc, grid_desc with
+      | (DimOption.ListRoot, _), (Grid.ListRoot, _) -> f xss
+      | (DimOption.ListDim tpa, _), (Grid.ListDim tpc, _) ->
+        List.map (iter_map (tpa, DimOption.VecRoot) (tpc, Grid.VecRoot)) xss
+      | _ -> failwith "Im so done at this point"
+  in
+  iter_map desc grid_desc xss
+
 
 module Index = struct
   type t = int list
@@ -52,10 +71,9 @@ let show_partial grid =
   ignore (Sys.command ("echo -e \"" ^ str ^ "\""))
 
 
-let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor -> config -> (d -> unit)  -> a -> d =
+let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor -> (e, f) DimOption.dim_descriptor -> config -> (e -> unit)  -> a -> d =
 
-
-  fun desc grid_desc conf helper inp ->
+  fun desc grid_desc optdesc conf helper inp ->
     (* Monada stanów obliczeń *)
     let module Computation = struct
                   (* seed  grid     stack      backtracking             counter 
@@ -173,7 +191,7 @@ let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor 
       match args with
       | ["show"] ->
         Computation.getGrid >>= fun grid ->
-        helper grid;
+        helper @@ doptlist_of_dgrid optdesc grid_desc cell_of_pixel grid;
         console()
       | ["cont"; c] ->
         let c = int_of_string c in
@@ -242,9 +260,12 @@ let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor 
       iter (List.of_seq neight) >>>
       Computation.storeState >>>
       Computation.getGrid >>= fun x ->
-      helper x;
+      helper @@ doptlist_of_dgrid optdesc grid_desc cell_of_pixel x;
       loop ()
     in
     ignore repl;
     Computation.run (loop()) (seed, grid, stack, [grid, stack], -1)
 
+let wfc1 conf helper map = wfc Dim.dim1 Grid.dim1 DimOption.dim1 conf helper map |> doptlist_of_dgrid DimOption.dim1 Grid.dim1 cell_of_pixel
+let wfc2 conf helper map = wfc Dim.dim2 Grid.dim2 DimOption.dim2 conf helper map |> doptlist_of_dgrid DimOption.dim2 Grid.dim2 cell_of_pixel
+let wfc3 conf helper map = wfc Dim.dim3 Grid.dim3 DimOption.dim3 conf helper map |> doptlist_of_dgrid DimOption.dim3 Grid.dim3 cell_of_pixel
