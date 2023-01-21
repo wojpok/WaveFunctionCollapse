@@ -1,0 +1,1 @@
+val hash : int -> int

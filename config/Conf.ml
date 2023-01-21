@@ -2,8 +2,8 @@
 (*            repl   prec   rots   syms    seed   dimensions *)
 type config = bool * int * (bool * bool) * int  * int list
 
-module Config = struct
-  type ('s1, 's2, 's3, 's4, 's5, 'a) t = ('s1 * 's2 * 's3 * 's4 * 's5 -> 'a * 's1 * 's2 * 's3 * 's4 * 's5)
+module ConfigMonad = struct
+  (*type ('s1, 's2, 's3, 's4, 's5, 'a) t = ('s1 * 's2 * 's3 * 's4 * 's5 -> 'a * 's1 * 's2 * 's3 * 's4 * 's5)*)
 
   let return x = fun (s1, s2, s3, s4, s5) -> (x, s1, s2, s3, s4, s5)
 
@@ -25,10 +25,10 @@ module Config = struct
   let putDims dims = fun (s1, s2, s3, s4, _) -> ((), s1, s2, s3, s4, dims)
 end
 
-let (>>=) = Config.bind
-let (>>>) a b = Config.bind a (fun () -> b)
+let (>>=) = ConfigMonad.bind
+let (>>>) a b = ConfigMonad.bind a (fun () -> b)
 
-open Config
+open ConfigMonad
 
 let create_config () = 
   let rec interp () = 
@@ -61,10 +61,22 @@ let create_config () =
         prec int -> set precision
         scan bool bool -> set rotation and symmetries
         seed int -> set seed
-        dims int.. -> set dims";
+        dims int list -> set dims";
       interp ()
   in
-  Config.run (interp()) (false, 1, (true, true), 0, [10; 10])
+  run (interp()) (false, 1, (true, true), 0, [10; 10])
 
-
+let validate_config (_, prec, _, _, dims) =
+  let validate_prec_dims () = 
+    match prec, List.length dims with
+    | 1, 2
+    | 2, 2
+    | 2, 1
+    -> true
+    | _ -> false
+  in
+  let positive_dims () = 
+    List.fold_left (fun acc x -> acc && (x > 0)) true dims
+  in
+  (positive_dims()) && (validate_prec_dims())
   

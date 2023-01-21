@@ -133,31 +133,5 @@ open Vector
       | ListRoot, VecRoot -> 0
       | _ -> failwith "dims - invalid descriptor"
 
-
-  let index_offset precision index =
-    let len = precision * 2 + 1 in
-    List.fold_left begin
-      fun acc x -> 
-        len * acc + (x + precision)
-    end
-    0
-    index
-
-  let rec get_all_indexes xs = 
-    let rec iter n xss acc =
-      if n < 0 then 
-        acc
-      else
-        let res = List.fold_right
-          (fun x acc -> (n :: x) :: acc)
-          xss acc 
-        in
-        iter (n - 1) xss res
-    in
-    match xs with
-    | [] -> [[]]
-    | x :: xs ->
-      let acc = get_all_indexes xs in
-      iter (x - 1) acc []
 end
 

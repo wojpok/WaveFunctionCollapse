@@ -3,7 +3,25 @@ module type OrderedType = sig
   val compare : t -> t -> int
 end
 
-module Make(Key : OrderedType) = struct
+module type S = sig
+  type t
+  type key
+
+  val empty : t
+  val singleton : key -> t
+  
+  val cardinal : t -> int
+
+  val insert : key -> t -> t
+  val pick_random : int -> t -> key option
+  val remove : key -> t -> t
+
+
+  val validate : t -> unit
+  val depth : t -> int
+end
+
+module Make(Key : OrderedType) : S with type key = Key.t = struct
 type key = Key.t
 let keycomp = Key.compare
 
@@ -155,5 +173,10 @@ let rec rmn c s t =
         let t = remove el t in
         let () = validate t in
         rmn (c - 1) (s * 2) t
+
+let () =        
+  ignore rmn;
+  ignore random_flat;
+  ignore flatten
 
 end

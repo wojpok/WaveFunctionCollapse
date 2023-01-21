@@ -1,6 +1,6 @@
 
 (*            repl   prec   rots   syms    seed   dimensions *)
-type config = bool * int * (bool * bool) * int  * int list
+type config = Conf.config
 
 module type OrderedStringableType = sig
   type t
@@ -15,33 +15,6 @@ module PixelList = struct
   
   let compare = List.compare Pixel8.compare
 end
-
-
-
-
-let test_map = let open Pixel8 in [
-	[White;White;White;White;White;White;White;White;White;White;White;White;White;White;White;White;];
-	[White;White;White;White;White;White;Black;Black;Black;Black;Black;Black;Black;White;White;White;];
-	[White;White;White;White;White;White;Black;White;White;White;White;White;Black;White;White;White;];
-	[White;White;White;White;White;White;Black;Black;Black;White;White;White;Black;White;White;White;];
-	[White;White;White;White;White;White;White;White;Black;White;White;White;Black;White;White;White;];
-	[White;White;White;Black;Black;Black;White;White;Black;White;White;White;Black;White;White;White;];
-	[White;White;White;Black;White;Black;White;White;Black;White;White;White;Black;White;White;White;];
-	[White;White;White;Black;White;Black;Black;Black;Black;White;White;White;Black;White;White;White;];
-	[White;White;White;Black;White;White;White;White;White;White;White;White;Black;White;White;White;];
-	[White;White;White;Black;White;White;White;White;White;White;White;White;Black;White;White;White;];
-	[White;White;White;Black;Black;Black;Black;Black;White;White;White;White;Black;White;White;White;];
-	[White;White;White;White;White;White;White;Black;White;White;White;White;Black;White;White;White;];
-	[White;White;White;White;Black;Black;White;Black;White;Black;Black;Black;Black;White;White;White;];
-	[White;White;White;White;Black;White;White;Black;White;White;White;White;White;White;White;White;];
-	[White;White;White;White;Black;Black;Black;Black;White;White;White;White;White;White;White;White;];
-	[White;White;White;White;White;White;White;White;White;White;White;White;White;White;White;White;];
-]
-
-
-
-module M = Dms.Make(PixelList)
-
 
 
 module Ent = Ent.Make(PixelList)
@@ -244,7 +217,7 @@ let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor 
       let* randv = Computation.random in
 
       let observation = Ent.collapse randv ent in
-      let propagation = Ent.propagation_set ent in
+      let propagation = Ent.propagation_set @@ Ent.remove_hat ent in
 
       let cell = List.nth observation middle_el_id in
       
@@ -274,7 +247,4 @@ let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor 
     in
     ignore repl;
     Computation.run (loop()) (seed, grid, stack, [grid, stack], -1)
-
-let test seed x map = wfc Dim.dim2 Grid.dim2 (true, 1, (true, true), seed, [x; x]) (show_partial) map
-
 

@@ -16,3 +16,22 @@ let demo1 = let open Pixel8 in [
 	[White;Red;White;Red;Yellow;Yellow;Yellow;Yellow;Yellow;Yellow;Yellow;Yellow;White;White;White;White;];
 	[White;Red;Red;Red;White;White;White;White;White;White;White;White;White;White;White;White;];
 ]
+
+let test_map = let open Pixel8 in [
+	[White;White;White;White;White;White;White;White;White;White;White;White;White;White;White;White;];
+	[White;White;White;White;White;White;Black;Black;Black;Black;Black;Black;Black;White;White;White;];
+	[White;White;White;White;White;White;Black;White;White;White;White;White;Black;White;White;White;];
+	[White;White;White;White;White;White;Black;Black;Black;White;White;White;Black;White;White;White;];
+	[White;White;White;White;White;White;White;White;Black;White;White;White;Black;White;White;White;];
+	[White;White;White;Black;Black;Black;White;White;Black;White;White;White;Black;White;White;White;];
+	[White;White;White;Black;White;Black;White;White;Black;White;White;White;Black;White;White;White;];
+	[White;White;White;Black;White;Black;Black;Black;Black;White;White;White;Black;White;White;White;];
+	[White;White;White;Black;White;White;White;White;White;White;White;White;Black;White;White;White;];
+	[White;White;White;Black;White;White;White;White;White;White;White;White;Black;White;White;White;];
+	[White;White;White;Black;Black;Black;Black;Black;White;White;White;White;Black;White;White;White;];
+	[White;White;White;White;White;White;White;Black;White;White;White;White;Black;White;White;White;];
+	[White;White;White;White;Black;Black;White;Black;White;Black;Black;Black;Black;White;White;White;];
+	[White;White;White;White;Black;White;White;Black;White;White;White;White;White;White;White;White;];
+	[White;White;White;White;Black;Black;Black;Black;White;White;White;White;White;White;White;White;];
+	[White;White;White;White;White;White;White;White;White;White;White;White;White;White;White;White;];
+]
