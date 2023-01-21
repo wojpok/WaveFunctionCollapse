@@ -39,7 +39,7 @@ let stringify = function
 
 
 let pixel8_color px = 
-  Printf.sprintf "\\e[30;4%dm" (pixel8_code px)
+  Printf.sprintf "\\e[37;4%dm" (pixel8_code px)
 
 let newline = (pixel8_color Black) ^ "\n"
 
@@ -47,7 +47,7 @@ let newline = (pixel8_color Black) ^ "\n"
 let show_pixel8_map map =
   let rec sparse_line = function
     | x :: xs -> (pixel8_color x) ^ " " ^ (sparse_line xs)
-    | _ -> "\\e[30;40m\n"
+    | _ -> "\\e[37;40m\n"
   in
   let rec sparse_file = function
     | xs :: xss -> (sparse_line xs) ^ (sparse_file xss)

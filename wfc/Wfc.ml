@@ -191,24 +191,55 @@ let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor 
     let (let* ) = Computation.bind in
     let (>>>) a b = Computation.bind a (fun () -> b) in
     let (>>=)  = Computation.bind in
+    
+    let rec console () =
+      let () = print_string "WFC $ "; flush stdout in
+      let line = read_line () in
+      let args = Str.split (Str.regexp " +") line in
 
-    let rec loop () = 
+      match args with
+      | ["show"] ->
+        Computation.getGrid >>= fun grid ->
+        helper grid;
+        console()
+      | ["cont"; c] ->
+        let c = int_of_string c in
+        Computation.putCnt c >>>
+        Computation.return true
+      | ["bt"; c] ->
+        let c = int_of_string c in
+        Computation.backtrack c >>>
+        console ()
+      | ["done"] ->
+        Computation.return false
+      | _ -> console()
+    and loop () = 
+
       let* el = Computation.popRandom in
       match el with
-      | None -> Computation.return grid
+      | None -> Computation.getGrid
       | Some inds ->
       let* cellState = Computation.getFromGrid inds in
       match cellState with
       | Collapsed _ -> loop ()
       | Unobserved ent ->
       let e = Ent.get_card ent in
-      if e = 0 then
+      if e = 0 then begin (*
         let () = print_endline "";
                  print_int @@ List.hd inds;
                  print_endline "";
                  print_int @@ List.hd @@ List.tl inds
-        in
-        Computation.return grid
+        in*)
+        if not repl then
+          Computation.getGrid >>= fun g -> Computation.return g
+        else
+          Computation.backtrack 0 >>>
+          console () >>= fun cont ->
+          if cont then 
+            loop()
+          else
+            Computation.getGrid >>= fun g -> Computation.return g
+      end
       else
       let* randv = Computation.random in
 
@@ -242,8 +273,8 @@ let wfc : type a b c d. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor 
       loop ()
     in
     ignore repl;
-    Computation.run (loop()) (seed, grid, stack, [], -1)
+    Computation.run (loop()) (seed, grid, stack, [grid, stack], -1)
 
-let test seed x map = wfc Dim.dim2 Grid.dim2 (false, 1, (true, true), seed, [x; x]) (show_partial) map
+let test seed x map = wfc Dim.dim2 Grid.dim2 (true, 1, (true, true), seed, [x; x]) (show_partial) map
 
 
