@@ -28,6 +28,8 @@ module type S = sig
 
   val msub_list_append : ('a, 'b) dim_descriptor -> (int * int) list -> 'b -> t list -> t list
   val msub_list        : ('a, 'b) dim_descriptor -> (int * int) list -> 'b -> t list
+
+  val string_of_dlist : ('a, 'b) dim_descriptor -> (t -> string) -> string -> 'a -> string
 end
 
 module Make(Key : Key) : S with type t = Key.t

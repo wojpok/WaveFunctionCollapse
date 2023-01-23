@@ -28,6 +28,8 @@ module type S = sig
 
   val msub_list_append : ('a, 'b) dim_descriptor -> (int * int) list -> 'b -> t list -> t list
   val msub_list        : ('a, 'b) dim_descriptor -> (int * int) list -> 'b -> t list
+
+  val string_of_dlist : ('a, 'b) dim_descriptor -> (t -> string) -> string -> 'a -> string
 end
 
 module Make(Key : Key) : S with type t = Key.t = struct
@@ -75,15 +77,21 @@ open Vector
         empty i (initialize_dvector (ListRoot, tpb) elem inds)
       | _ -> failwith "initialize_dvector - invalid dimensions" 
     
-      (*
-  let rec string_of_dlist : type a b. (a, b) dim_descriptor -> a -> string =
-    fun desc mxs ->
-      match desc with
-      | ListDim tpa, _ -> 
-        let m = List.map (fun x -> (string_of_dlist (tpa, VecRoot) x)) mxs in 
-        "[" ^ (List.fold_right (fun x y -> x ^ "; " ^ y) m "]")
-      | ListRoot, _ -> string_of_int mxs  
-*)
+  
+  let string_of_dlist : type a b. (a, b) dim_descriptor -> (t -> string) -> string -> a -> string =
+    fun desc string_of_key newline mxs ->
+      let rec iter : type a b. (a, b) dim_descriptor -> a -> string = 
+        fun desc mxs ->
+          match desc with
+          | ListDim ListRoot, _ ->
+            let m = List.map (fun x -> string_of_key x) mxs in
+            List.fold_right (^) m ""
+          | ListDim tpa, _ -> 
+            let m = List.map (fun x -> (iter (tpa, VecRoot) x)) mxs in 
+            (List.fold_right (fun x y -> x ^ newline ^ y) m "\n")
+          | ListRoot, _ -> string_of_key mxs  
+    in iter desc mxs
+
 
   let rec mindex : type a b. (a, b) dim_descriptor -> int list -> b -> t = 
     fun desc inds vec -> 

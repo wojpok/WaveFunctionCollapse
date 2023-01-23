@@ -2,6 +2,9 @@
 (*            repl   prec   rots   syms    seed   dimensions *)
 type config = Conf.config
 
+let default_config = Conf.default
+let create_config () = Conf.create_config ()
+
 module type OrderedStringableType = sig
   type t
   val compare : t -> t -> int
@@ -12,9 +15,9 @@ end
 module type S = sig
   type key
 
-  val wfc1 : config -> (key option list           -> unit) -> key list            -> key option list
-  val wfc2 : config -> (key option list list      -> unit) -> key list list       -> key option list list
-  val wfc3 : config -> (key option list list list -> unit) -> key list list list  -> key option list list list
+  val wfc1 : config -> key list            -> key option list
+  val wfc2 : config -> key list list       -> key option list list
+  val wfc3 : config -> key list list list  -> key option list list list
 end
 
 module Make(Key : OrderedStringableType) : S with type key = Key.t = struct
@@ -83,9 +86,9 @@ let show_partial grid =
   ignore (Sys.command ("echo -e \"" ^ str ^ "\""))
 *)
 
-let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor -> (e, f) DimOption.dim_descriptor -> config -> (e -> unit)  -> a -> d =
+let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor -> (e, f) DimOption.dim_descriptor -> config -> a -> d =
 
-  fun desc grid_desc optdesc conf helper inp ->
+  fun desc grid_desc optdesc conf inp ->
     (* Monada stanów obliczeń *)
     let module Computation = struct
                   (* seed  grid     stack      backtracking             counter 
@@ -157,6 +160,10 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
           putGrid grid 
       
     end in
+    let helper xss = 
+      let str = DimOption.string_of_dlist optdesc Key.stringify Key.newline xss in
+      ignore @@ Sys.command ("echo -e \"" ^ str ^ "\"")
+    in
     (* dims *)
     let dims = Dim.dims desc in
     (* Config *)
@@ -211,7 +218,6 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
         return false
       | _ -> console ()
 
-
     and loop () = 
 
       let* el = popRandom in
@@ -223,12 +229,9 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
       | Collapsed _ -> loop ()
       | Unobserved ent ->
       let e = Ent.get_card ent in
-      if e = 0 then begin (*
-        let () = print_endline "";
-                 print_int @@ List.hd inds;
-                 print_endline "";
-                 print_int @@ List.hd @@ List.tl inds
-        in*)
+
+      getCnt >>= fun cnt ->
+      if cnt = 0 || e = 0 then begin 
         if not repl then
           getGrid >>= fun g -> return g
         else
@@ -268,11 +271,13 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
       iter (List.of_seq neight) >>>
       storeState >>>
       getGrid >>= fun x ->
-      helper @@ doptlist_of_dgrid optdesc grid_desc key_of_cell x;
+      let () = if repl then
+        helper @@ doptlist_of_dgrid optdesc grid_desc key_of_cell x else () in
       loop ()
     in
     ignore repl;
-    run (loop()) (seed, grid, stack, [grid, stack], -1)
+    let cnt = if repl then 0 else -1 in
+    run (loop()) (seed, grid, stack, [grid, stack], cnt)
 
 
 let dim1 =      let open Dim in       (ListDim ListRoot,                    VecDim(VecRoot)) 
@@ -288,13 +293,13 @@ let opt_dim2 =  let open DimOption in (ListDim(ListDim(ListRoot)),          VecD
 let opt_dim3 =  let open DimOption in (ListDim(ListDim(ListDim(ListRoot))), VecDim(VecDim(VecDim(VecRoot))))
 
 
-let wfc1 conf helper map = wfc dim1 grid_dim1 opt_dim1 conf helper map 
+let wfc1 conf map = wfc dim1 grid_dim1 opt_dim1 conf map 
   |> doptlist_of_dgrid opt_dim1 grid_dim1 key_of_cell
 
-let wfc2 conf helper map = wfc dim2 grid_dim2 opt_dim2 conf helper map 
+let wfc2 conf map = wfc dim2 grid_dim2 opt_dim2 conf map 
   |> doptlist_of_dgrid opt_dim2 grid_dim2 key_of_cell
 
-let wfc3 conf helper map = wfc dim3 grid_dim3 opt_dim3 conf helper map 
+let wfc3 conf map = wfc dim3 grid_dim3 opt_dim3 conf map 
   |> doptlist_of_dgrid opt_dim3 grid_dim3 key_of_cell
 
 
