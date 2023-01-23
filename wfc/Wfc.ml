@@ -18,6 +18,14 @@ module type S = sig
   val wfc1 : config -> key list            -> key option list
   val wfc2 : config -> key list list       -> key option list list
   val wfc3 : config -> key list list list  -> key option list list list
+
+  val show1 : key list -> unit
+  val show2 : key list list -> unit
+  val show3 : key list list list -> unit
+
+  val show1_opt : key option list -> unit
+  val show2_opt : key option list list -> unit
+  val show3_opt : key option list list list -> unit
 end
 
 module Make(Key : OrderedStringableType) : S with type key = Key.t = struct
@@ -49,7 +57,7 @@ module DimOption = Dim.Make(struct type t = Key.t option end)
 module Dim       = Dim.Make(Key)
 
 
-
+(* konwerter między modułami *)
 let doptlist_of_dgrid : type a b c d. (a, b) DimOption.dim_descriptor -> (c, d) Grid.dim_descriptor -> (Grid.t -> DimOption.t) -> d -> a =
   fun desc grid_desc f grid ->
   let xss : c = Grid.dlist_of_dvector grid_desc grid in
@@ -71,9 +79,10 @@ end
 
 module Stack = Stack.Make(Index)
 
-let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor -> (e, f) DimOption.dim_descriptor -> config -> a -> d =
+let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor -> (e, f) DimOption.dim_descriptor -> config -> a -> e =
 
   fun desc grid_desc optdesc conf inp ->
+
     (* Monada stanów obliczeń *)
     let module Computation = struct
                   (* seed  grid     stack      backtracking             counter 
@@ -86,33 +95,39 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
 
       let (>>=)   = bind
       let (let* ) = bind
+
       (* Dodatkowy lukier syntaktyczny na x >>= fun () -> y 
        * Podobno operator >>> jest wykorzystywany przez wzorzec Arrow
-       * Ale nie występuje to żaden konflikt ponieważ nie używam tego wzorca *)
+       * Ale nie występuje tu żaden konflikt ponieważ nie używam tego wzorca *)
       let (>>>) a b = bind a (fun () -> b)
 
       let run m (seed, grid, stack, bt, cnt) = 
         let (res, _, _, _, _, _) = m (Rand.hash seed, grid, stack, bt, cnt) in res
 
+      (* losowanie wartości *)
       let random (seed, grid, stack, bt, cnt) = (seed, Rand.hash seed, grid, stack, bt, cnt)
-
+      
       let getStack   (seed, grid, stack, bt, cnt) = (stack, seed, grid, stack, bt, cnt)
       let putStack stack (seed, grid, _, bt, cnt) = ((),    seed, grid, stack, bt, cnt)
-
+      
+      (* wyciąganie losowego elemntu ze stosu zgodnie z heurystyką minimalnej entropii *)
       let popRandom = 
         random   >>= fun r ->
         getStack >>= fun stack ->
         let (stack, el) = Stack.pop_random r stack in
         putStack stack >>>
         return el
-
+      
+      (* zmniejszanie entropii niezaobserwowanych komórek*)
       let decreaseKey f t k =
         getStack >>= fun s ->
         putStack @@ Stack.decrease_key f t k s
 
-      let getGrid      (seed, grid, stack, bt, cnt) = (grid,  seed, grid, stack, bt, cnt)
-      let putGrid grid (seed, _,    stack, bt, cnt) = ((),    seed, grid, stack, bt, cnt)
-
+      let getGrid       (seed, grid, stack, bt, cnt) = (grid,  seed, grid, stack, bt, cnt)
+      let putGrid grid  (seed, _,    stack, bt, cnt) = ((),    seed, grid, stack, bt, cnt)
+      let getGridAsList (seed, grid, stack, bt, cnt) = (doptlist_of_dgrid optdesc grid_desc key_of_cell grid,
+                                                               seed, grid, stack, bt, cnt)
+      (* indexowanie w siatce *)
       let getFromGrid inds =
         getGrid >>= fun grid ->
         let el = Grid.mindex grid_desc inds grid in
@@ -127,7 +142,8 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
 
       let getCnt     (seed, grid, stack, bt, cnt) = (cnt, seed, grid, stack, bt, cnt)
       let putCnt cnt (seed, grid, stack, bt, _)   = ((),  seed, grid, stack, bt, cnt)
-
+      
+      (* Zapamiętywanie stanu obliczeń *)
       let storeState =
         getGrid  >>= fun grid ->
         getStack >>= fun stack -> 
@@ -136,6 +152,7 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
         getCnt   >>= fun c -> 
         putCnt (c - 1)
       
+      (* przywracanie wscześniejszego stanu obliczeń *)
       let backtrack n =
         getBt >>= fun bt ->
         match List.nth_opt bt n with
@@ -145,6 +162,8 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
           putGrid grid 
       
     end in
+
+    (* pomocnicza funkcja do wyświetlania obecnego stanu obliczeń *)
     let helper xss = 
       let str = DimOption.string_of_dlist optdesc Key.stringify Key.newline xss in
       ignore @@ Sys.command ("echo -e \"" ^ str ^ "\"")
@@ -188,8 +207,8 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
 
       match args with
       | ["show"] ->
-        getGrid >>= fun grid ->
-        helper @@ doptlist_of_dgrid optdesc grid_desc key_of_cell grid;
+        getGridAsList >>= fun grid ->
+        helper grid;
         console ()
       | ["cont"; c] ->
         let c = int_of_string c in
@@ -232,10 +251,17 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
       iter (List.of_seq neight)
 
     and loop () = 
-
+      getCnt >>= fun cnt ->
+        if cnt = 0 then
+          console () >>= fun cont ->
+            if cont then
+              loop ()
+            else
+              getGridAsList
+      else
       let* el = popRandom in
       match el with
-      | None -> getGrid
+      | None -> getGridAsList
       | Some inds ->
       let* cellState = getFromGrid inds in
       match cellState with
@@ -243,29 +269,27 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
       | Unobserved ent ->
       let e = Ent.get_card ent in
 
-      getCnt >>= fun cnt ->
-      if cnt = 0 || e = 0 then begin 
+      if e = 0 then begin 
         if not repl then
-          getGrid >>= fun g -> return g
+          getGridAsList >>= fun g -> return g
         else
           backtrack 0 >>>
           console () >>= fun cont ->
           if cont then 
             loop()
           else
-            getGrid >>= fun g -> return g
+            getGridAsList >>= fun g -> return g
       end
       else
       collapse_cell ent inds >>>
       storeState >>>
-      getGrid >>= fun x ->
-      let () = if repl then
-        helper @@ doptlist_of_dgrid optdesc grid_desc key_of_cell x else () in
-      loop ()
+      if repl then
+        getGridAsList >>= fun x -> helper x; 
+        loop ()
+      else 
+        loop ()
     in
-    ignore repl;
-    let cnt = if repl then 0 else -1 in
-    run (loop()) (seed, grid, stack, [grid, stack], cnt)
+    run (loop()) (seed, grid, stack, [grid, stack], -1)
 
 
 let dim1 =      let open Dim in       (ListDim ListRoot,                    VecDim(VecRoot)) 
@@ -282,13 +306,23 @@ let opt_dim3 =  let open DimOption in (ListDim(ListDim(ListDim(ListRoot))), VecD
 
 
 let wfc1 conf map = wfc dim1 grid_dim1 opt_dim1 conf map 
-  |> doptlist_of_dgrid opt_dim1 grid_dim1 key_of_cell
-
 let wfc2 conf map = wfc dim2 grid_dim2 opt_dim2 conf map 
-  |> doptlist_of_dgrid opt_dim2 grid_dim2 key_of_cell
-
 let wfc3 conf map = wfc dim3 grid_dim3 opt_dim3 conf map 
-  |> doptlist_of_dgrid opt_dim3 grid_dim3 key_of_cell
 
+let show_ desc xss = 
+  let str = DimOption.string_of_dlist desc Key.stringify Key.newline xss in
+  ignore @@ Sys.command ("echo -e \"" ^ str ^ "\"")
+
+let show1_opt xs   = show_ opt_dim1 xs
+let show2_opt xss  = show_ opt_dim2 xss
+let show3_opt xsss = show_ opt_dim3 xsss
+
+let show_ desc xss = 
+  let str = Dim.string_of_dlist desc (fun x -> Key.stringify @@ Some x) Key.newline xss in
+  ignore @@ Sys.command ("echo -e \"" ^ str ^ "\"")
+
+let show1 xs   = show_ dim1 xs
+let show2 xss  = show_ dim2 xss
+let show3 xsss = show_ dim3 xsss
 
 end
