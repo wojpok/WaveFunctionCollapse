@@ -1,12 +1,10 @@
-module type S = sig
+module type Key = sig
   type t
 end
 
-
-module Make(Key : S) = struct
-open Vector
-
-  type t = Key.t
+module type S = sig
+  type t
+  type 'a vector = 'a Vector.vector
 
   type _ listDim = 
   | ListRoot : t listDim
@@ -18,10 +16,41 @@ open Vector
 
   type ('a, 'b) dim_descriptor = 'a listDim * 'b vecDim
 
+  val dvector_of_dlist   : ('a, 'b) dim_descriptor -> 'a -> 'b
+  val dlist_of_dvector   : ('a, 'b) dim_descriptor -> 'b -> 'a
+  val initialize_dvector : ('a, 'b) dim_descriptor -> t -> int list -> 'b
+
+  val msize : ('a, 'b) dim_descriptor -> 'b -> int list
+  val dims  : ('a, 'b) dim_descriptor -> int
+
+  val mindex : ('a, 'b) dim_descriptor -> int list -> 'b -> t
+  val mset   : ('a, 'b) dim_descriptor -> int list -> t -> 'b -> 'b
+
+  val msub_list_append : ('a, 'b) dim_descriptor -> (int * int) list -> 'b -> t list -> t list
+  val msub_list        : ('a, 'b) dim_descriptor -> (int * int) list -> 'b -> t list
+end
+
+module Make(Key : Key) : S with type t = Key.t = struct
+open Vector
+
+  type t = Key.t
+  type 'a vector = 'a Vector.vector
+
+  type _ listDim = 
+  | ListRoot : t listDim
+  | ListDim  : 'a listDim -> 'a list listDim
+
+  type _ vecDim = 
+  | VecRoot : t vecDim
+  | VecDim  : 'a vecDim -> 'a vector vecDim
+
+  type ('a, 'b) dim_descriptor = 'a listDim * 'b vecDim
+
+  (*
   let dim1 = (ListDim(ListRoot)),                   (VecDim(VecRoot))
   let dim2 = (ListDim(ListDim(ListRoot))),          (VecDim(VecDim(VecRoot)))
   let dim3 = (ListDim(ListDim(ListDim(ListRoot)))), (VecDim(VecDim(VecDim(VecRoot))))
-
+*)
   let rec dvector_of_dlist : type a b. (a, b) dim_descriptor -> a -> b =
     fun desc mxs -> 
       match desc with
@@ -125,6 +154,8 @@ open Vector
     | x :: xs ->
       let acc = get_subvector_ids xs size in
       iter (x - 1 - size) acc []
+
+  let () = ignore get_subvector_ids
 
   let rec dims : type a b. (a, b) dim_descriptor -> int =
     fun desc ->

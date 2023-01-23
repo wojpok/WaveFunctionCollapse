@@ -9,30 +9,41 @@ module type OrderedStringableType = sig
   val newline : string
 end
 
+module type S = sig
+  type key
 
-module PixelList = struct
-  type t = Pixel8.t list
-  
-  let compare = List.compare Pixel8.compare
+  val wfc1 : config -> (key option list           -> unit) -> key list            -> key option list
+  val wfc2 : config -> (key option list list      -> unit) -> key list list       -> key option list list
+  val wfc3 : config -> (key option list list list -> unit) -> key list list list  -> key option list list list
 end
 
-module Ent = Ent.Make(PixelList)
+module Make(Key : OrderedStringableType) : S with type key = Key.t = struct
 
-type pixel_state = 
-| Collapsed of Pixel8.t
+type key = Key.t
+
+module KeyList = struct
+  type t = Key.t list
+  
+  let compare = List.compare Key.compare
+end
+
+module Ent = Ent.Make(KeyList)
+
+type cell_state = 
+| Collapsed of Key.t
 | Unobserved of Ent.entropy
 
-let cell_of_pixel = function
+let key_of_cell = function
 | Collapsed px -> Some px
 | Unobserved _ -> None
 
-module PixelState = struct
-  type t = pixel_state
+module CellState = struct
+  type t = cell_state
 end
 
-module Grid      = Dim.Make(PixelState)
-module DimOption = Dim.Make(struct type t = Pixel8.t option end)
-module Dim       = Dim.Make(Pixel8)
+module Grid      = Dim.Make(CellState)
+module DimOption = Dim.Make(struct type t = Key.t option end)
+module Dim       = Dim.Make(Key)
 
 
 
@@ -57,6 +68,7 @@ end
 
 module Stack = Stack.Make(Index)
 
+(*
 let show_partial grid = 
   let xss = Grid.dlist_of_dvector Grid.dim2 grid in
   let str = List.fold_right begin fun xs acc ->
@@ -64,12 +76,12 @@ let show_partial grid =
       let x = match x with
       | Unobserved _ -> None
       | Collapsed v -> Some v in
-      (Pixel8.stringify x) ^ acc 
-    end xs Pixel8.newline ^ acc
+      (Key.stringify x) ^ acc 
+    end xs Key.newline ^ acc
   end xss ""
   in
   ignore (Sys.command ("echo -e \"" ^ str ^ "\""))
-
+*)
 
 let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor -> (e, f) DimOption.dim_descriptor -> config -> (e -> unit)  -> a -> d =
 
@@ -84,7 +96,11 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
         let (x, seed, grid, stack, bt, cnt) = m (seed, grid, stack, bt, cnt) in 
           f x (seed, grid, stack, bt, cnt)
 
-      let (>>=) = bind
+      let (>>=)   = bind
+      let (let* ) = bind
+      (* Dodatkowy lukier syntaktyczny na x >>= fun () -> y 
+       * Podobno operator >>> jest wykorzystywany przez wzorzec Arrow
+       * Ale nie występuje to żaden konflikt ponieważ nie używam tego wzorca *)
       let (>>>) a b = bind a (fun () -> b)
 
       let run m (seed, grid, stack, bt, cnt) = 
@@ -96,7 +112,7 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
       let putStack stack (seed, grid, _, bt, cnt) = ((),    seed, grid, stack, bt, cnt)
 
       let popRandom = 
-        random >>= fun r ->
+        random   >>= fun r ->
         getStack >>= fun stack ->
         let (stack, el) = Stack.pop_random r stack in
         putStack stack >>>
@@ -125,11 +141,11 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
       let putCnt cnt (seed, grid, stack, bt, _)   = ((),  seed, grid, stack, bt, cnt)
 
       let storeState =
-        getGrid >>= fun grid ->
+        getGrid  >>= fun grid ->
         getStack >>= fun stack -> 
-        getBt >>= fun bt ->
+        getBt    >>= fun bt ->
         putBt @@ (grid, stack) :: bt >>>
-        getCnt >>= fun c -> 
+        getCnt   >>= fun c -> 
         putCnt (c - 1)
       
       let backtrack n =
@@ -141,13 +157,6 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
           putGrid grid 
       
     end in
-    let () = ignore Computation.backtrack;
-    ignore Computation.storeState;
-    ignore Computation.getFromGrid;
-    ignore Computation.putToGrid;
-    ignore Computation.popRandom;
-    ignore Computation.run
-    in
     (* dims *)
     let dims = Dim.dims desc in
     (* Config *)
@@ -179,10 +188,7 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
     let grid = Grid.initialize_dvector grid_desc (Unobserved entropy) grid_size in
     let stack = Stack.of_seq initial_entropy @@ Iter.index_seq grid_size in
     
-    let (let* ) = Computation.bind in
-    let (>>>) a b = Computation.bind a (fun () -> b) in
-    let (>>=)  = Computation.bind in
-    
+    let open Computation in
     let rec console () =
       let () = print_string "WFC $ "; flush stdout in
       let line = read_line () in
@@ -190,27 +196,29 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
 
       match args with
       | ["show"] ->
-        Computation.getGrid >>= fun grid ->
-        helper @@ doptlist_of_dgrid optdesc grid_desc cell_of_pixel grid;
-        console()
+        getGrid >>= fun grid ->
+        helper @@ doptlist_of_dgrid optdesc grid_desc key_of_cell grid;
+        console ()
       | ["cont"; c] ->
         let c = int_of_string c in
-        Computation.putCnt c >>>
-        Computation.return true
+        putCnt c >>>
+        return true
       | ["bt"; c] ->
         let c = int_of_string c in
-        Computation.backtrack c >>>
+        backtrack c >>>
         console ()
       | ["done"] ->
-        Computation.return false
-      | _ -> console()
+        return false
+      | _ -> console ()
+
+
     and loop () = 
 
-      let* el = Computation.popRandom in
+      let* el = popRandom in
       match el with
-      | None -> Computation.getGrid
+      | None -> getGrid
       | Some inds ->
-      let* cellState = Computation.getFromGrid inds in
+      let* cellState = getFromGrid inds in
       match cellState with
       | Collapsed _ -> loop ()
       | Unobserved ent ->
@@ -222,50 +230,72 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
                  print_int @@ List.hd @@ List.tl inds
         in*)
         if not repl then
-          Computation.getGrid >>= fun g -> Computation.return g
+          getGrid >>= fun g -> return g
         else
-          Computation.backtrack 0 >>>
+          backtrack 0 >>>
           console () >>= fun cont ->
           if cont then 
             loop()
           else
-            Computation.getGrid >>= fun g -> Computation.return g
+            getGrid >>= fun g -> return g
       end
       else
-      let* randv = Computation.random in
+      let* randv = random in
 
       let observation = Ent.collapse randv ent in
       let propagation = Ent.propagation_set @@ Ent.remove_hat ent in
 
       let cell = List.nth observation middle_el_id in
       
-      Computation.putToGrid inds (Collapsed cell) >>>
+      putToGrid inds (Collapsed cell) >>>
 
       let neight = Iter.propagate_collapse grid_size precision inds in
 
       let rec iter = function
-      | [] -> Computation.return ()
+      | [] -> return ()
       | (inds, offset) :: xs ->
-        Computation.getFromGrid inds >>= fun el ->
+        getFromGrid inds >>= fun el ->
         match el with
         | Collapsed _ -> iter xs
         | Unobserved ent -> 
           let pred = List.nth propagation offset in
           let nent = Ent.filter (fun x -> ( (cell = (List.nth x offset)) && (pred (List.nth x middle_el_id)))) ent in
 
-          Computation.putToGrid inds (Unobserved nent) >>>
-          Computation.decreaseKey (Ent.get_entropy ent) (Ent.get_entropy nent) inds >>> 
+          putToGrid inds (Unobserved nent) >>>
+          decreaseKey (Ent.get_entropy ent) (Ent.get_entropy nent) inds >>> 
           iter xs
       in
       iter (List.of_seq neight) >>>
-      Computation.storeState >>>
-      Computation.getGrid >>= fun x ->
-      helper @@ doptlist_of_dgrid optdesc grid_desc cell_of_pixel x;
+      storeState >>>
+      getGrid >>= fun x ->
+      helper @@ doptlist_of_dgrid optdesc grid_desc key_of_cell x;
       loop ()
     in
     ignore repl;
-    Computation.run (loop()) (seed, grid, stack, [grid, stack], -1)
+    run (loop()) (seed, grid, stack, [grid, stack], -1)
 
-let wfc1 conf helper map = wfc Dim.dim1 Grid.dim1 DimOption.dim1 conf helper map |> doptlist_of_dgrid DimOption.dim1 Grid.dim1 cell_of_pixel
-let wfc2 conf helper map = wfc Dim.dim2 Grid.dim2 DimOption.dim2 conf helper map |> doptlist_of_dgrid DimOption.dim2 Grid.dim2 cell_of_pixel
-let wfc3 conf helper map = wfc Dim.dim3 Grid.dim3 DimOption.dim3 conf helper map |> doptlist_of_dgrid DimOption.dim3 Grid.dim3 cell_of_pixel
+
+let dim1 =      let open Dim in       (ListDim ListRoot,                    VecDim(VecRoot)) 
+let dim2 =      let open Dim in       (ListDim(ListDim(ListRoot)),          VecDim(VecDim(VecRoot))) 
+let dim3 =      let open Dim in       (ListDim(ListDim(ListDim(ListRoot))), VecDim(VecDim(VecDim(VecRoot))))
+
+let grid_dim1 = let open Grid in      (ListDim ListRoot,                    VecDim(VecRoot)) 
+let grid_dim2 = let open Grid in      (ListDim(ListDim(ListRoot)),          VecDim(VecDim(VecRoot))) 
+let grid_dim3 = let open Grid in      (ListDim(ListDim(ListDim(ListRoot))), VecDim(VecDim(VecDim(VecRoot))))
+
+let opt_dim1 =  let open DimOption in (ListDim ListRoot,                    VecDim(VecRoot)) 
+let opt_dim2 =  let open DimOption in (ListDim(ListDim(ListRoot)),          VecDim(VecDim(VecRoot))) 
+let opt_dim3 =  let open DimOption in (ListDim(ListDim(ListDim(ListRoot))), VecDim(VecDim(VecDim(VecRoot))))
+
+
+let wfc1 conf helper map = wfc dim1 grid_dim1 opt_dim1 conf helper map 
+  |> doptlist_of_dgrid opt_dim1 grid_dim1 key_of_cell
+
+let wfc2 conf helper map = wfc dim2 grid_dim2 opt_dim2 conf helper map 
+  |> doptlist_of_dgrid opt_dim2 grid_dim2 key_of_cell
+
+let wfc3 conf helper map = wfc dim3 grid_dim3 opt_dim3 conf helper map 
+  |> doptlist_of_dgrid opt_dim3 grid_dim3 key_of_cell
+
+
+end

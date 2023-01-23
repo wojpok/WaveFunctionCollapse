@@ -1,3 +1,3 @@
 (library
   (name wfc)
-  (libraries vector dim pixel8 str conf perm ent stack iter rand demo))
+  (libraries vector dim str conf perm ent stack iter rand))

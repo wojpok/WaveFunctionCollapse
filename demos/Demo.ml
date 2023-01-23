@@ -1,3 +1,7 @@
+
+module Pixel8Wfc = Wfc.Make(Pixel8)
+
+
 let demo1 = let open Pixel8 in [
 	[White;Yellow;Yellow;Yellow;Yellow;Yellow;White;White;White;White;White;White;White;White;White;White;];
 	[White;Yellow;White;White;White;Yellow;White;White;Yellow;Yellow;Yellow;Yellow;Yellow;Yellow;Yellow;White;];
