@@ -71,21 +71,6 @@ end
 
 module Stack = Stack.Make(Index)
 
-(*
-let show_partial grid = 
-  let xss = Grid.dlist_of_dvector Grid.dim2 grid in
-  let str = List.fold_right begin fun xs acc ->
-    List.fold_right begin fun x acc ->
-      let x = match x with
-      | Unobserved _ -> None
-      | Collapsed v -> Some v in
-      (Key.stringify x) ^ acc 
-    end xs Key.newline ^ acc
-  end xss ""
-  in
-  ignore (Sys.command ("echo -e \"" ^ str ^ "\""))
-*)
-
 let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor -> (e, f) DimOption.dim_descriptor -> config -> a -> d =
 
   fun desc grid_desc optdesc conf inp ->
@@ -218,31 +203,7 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
         return false
       | _ -> console ()
 
-    and loop () = 
-
-      let* el = popRandom in
-      match el with
-      | None -> getGrid
-      | Some inds ->
-      let* cellState = getFromGrid inds in
-      match cellState with
-      | Collapsed _ -> loop ()
-      | Unobserved ent ->
-      let e = Ent.get_card ent in
-
-      getCnt >>= fun cnt ->
-      if cnt = 0 || e = 0 then begin 
-        if not repl then
-          getGrid >>= fun g -> return g
-        else
-          backtrack 0 >>>
-          console () >>= fun cont ->
-          if cont then 
-            loop()
-          else
-            getGrid >>= fun g -> return g
-      end
-      else
+    and collapse_cell ent inds =
       let* randv = random in
 
       let observation = Ent.collapse randv ent in
@@ -268,7 +229,34 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
           decreaseKey (Ent.get_entropy ent) (Ent.get_entropy nent) inds >>> 
           iter xs
       in
-      iter (List.of_seq neight) >>>
+      iter (List.of_seq neight)
+
+    and loop () = 
+
+      let* el = popRandom in
+      match el with
+      | None -> getGrid
+      | Some inds ->
+      let* cellState = getFromGrid inds in
+      match cellState with
+      | Collapsed _ -> loop ()
+      | Unobserved ent ->
+      let e = Ent.get_card ent in
+
+      getCnt >>= fun cnt ->
+      if cnt = 0 || e = 0 then begin 
+        if not repl then
+          getGrid >>= fun g -> return g
+        else
+          backtrack 0 >>>
+          console () >>= fun cont ->
+          if cont then 
+            loop()
+          else
+            getGrid >>= fun g -> return g
+      end
+      else
+      collapse_cell ent inds >>>
       storeState >>>
       getGrid >>= fun x ->
       let () = if repl then
