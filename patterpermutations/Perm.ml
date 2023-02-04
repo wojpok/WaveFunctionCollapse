@@ -1,6 +1,22 @@
 (* Nie wpadłem na żaden eleganci sposób realizacji permutacji kafli
  * Zadowoliłem się tym podejściem  *)
 
+let d1p1id : ('a list -> 'a list) list = [
+  (* identity *)
+  (function
+  | [x1; x2; x3] ->
+    [x1; x2; x3]
+  | _ -> failwith "E");
+]
+
+let d1p1rotations : ('a list -> 'a list) list = [
+  (* 180 deg *)
+  (function
+  | [x1; x2; x3] ->
+    [x3; x2; x1]
+  | _ -> failwith "E");
+]
+
 let d1p2id : ('a list -> 'a list) list = [
   (* identity *)
   (function
@@ -201,6 +217,12 @@ let d2p2symmetries : ('a list -> 'a list) list = [
 
 let get_permutator dims precision rotations symmetries =
   match dims, precision, rotations, symmetries with
+
+  (* D1P1 *)
+  | 1, 1, false, _ ->
+    d1p1id
+  | 1, 1, true, _ ->
+    d1p1id @ d1p1rotations
 
   (* D1P2 *)
   | 1, 2, false, false ->

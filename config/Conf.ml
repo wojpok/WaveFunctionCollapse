@@ -40,6 +40,7 @@ let create_config () =
     getScan >>= fun (rots, syms) -> Printf.printf "Scanning (rots/syms): %b %b\n" rots syms;
     getSeed >>= fun seed ->         Printf.printf "Seed: %d\n" seed;
     getDims >>= fun dims ->         Printf.printf "Dims %s\n" @@ List.fold_right (fun x acc -> (string_of_int x) ^ " " ^ acc) dims "";
+    print_string "$ "; flush stdout;
     let line = read_line () in
     let args = Str.split (Str.regexp " +") line in
     let() = ignore args in

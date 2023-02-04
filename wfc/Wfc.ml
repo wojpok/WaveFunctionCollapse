@@ -34,7 +34,6 @@ type key = Key.t
 
 module KeyList = struct
   type t = Key.t list
-  
   let compare = List.compare Key.compare
 end
 
@@ -242,6 +241,7 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
         | Collapsed _ -> iter xs
         | Unobserved ent -> 
           let pred = List.nth propagation offset in
+          ignore pred;
           let nent = Ent.filter (fun x -> ( (cell = (List.nth x offset)) && (pred (List.nth x middle_el_id)))) ent in
 
           putToGrid inds (Unobserved nent) >>>
