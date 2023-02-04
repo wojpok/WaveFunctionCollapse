@@ -83,7 +83,7 @@ Which provides interface to interract with
 
 Functions ```wfc1```, ```wfc2``` and ```wfc3``` are the core of the algorithm which takes config (described later) and n-dimensional map of data and yields new map
 
-The ```showX``` and ```showX_opt``` functions lets us inspect inputs and outputs of the algorithm
+The ```showX``` and ```showX_opt``` functions lets us inspect inputs and outputs of the algorithm respectivately
 
 ### Creating config
 
@@ -135,4 +135,60 @@ Curently there are 4 commands:
 ### Map editor
 
 Creating 2D maps by hand is a tidious task, thus there is a simple browser based editor in ```editor``` folder. Simply double click to open it
+
+## Code Structure
+
+A short description of modules 
+
+### Config
+
+Contains an interactive (monadic) repl that helps create config 
+
+### Demos
+
+Interactive examples
+
+### Dim
+
+Module that provides an interface to manipulate multidimensional vector and lists
+
+### DS - Density Set
+
+A custom implementation of set that allows to pick random element from seed
+
+### Editor
+
+Browser based editor for 2D maps
+
+### Entropy
+
+A structure that manages possible states for each cell
+
+### Iter 
+
+Set of functions that generates multidimensional indexing
+
+### Pattern Permutations
+
+Set of functions that transforms tiles into various permutations
+
+### Pixel8
+
+Module that provides complete, ready to use module that can be inserted into WFC
+
+### Random
+
+Hashing function
+
+### Stack
+
+Structure that stores all non collapsed cells ordered by their entropy
+
+### Vector
+
+Custom array-like immutable data structure that allows to quickly take sublist of an element vector
+
+### WFC
+
+Algorithm main loop
 

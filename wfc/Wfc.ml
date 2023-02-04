@@ -66,7 +66,7 @@ let doptlist_of_dgrid : type a b c d. (a, b) DimOption.dim_descriptor -> (c, d) 
       | (DimOption.ListRoot, _), (Grid.ListRoot, _) -> f xss
       | (DimOption.ListDim tpa, _), (Grid.ListDim tpc, _) ->
         List.map (iter_map (tpa, DimOption.VecRoot) (tpc, Grid.VecRoot)) xss
-      | _ -> failwith "Im so done at this point"
+      | _ -> failwith "doptlist_of_dgrid"
   in
   iter_map desc grid_desc xss
 
