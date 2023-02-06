@@ -1,4 +1,5 @@
 
+(* all points on n - dimensional map *)
 let rec index_seq = function
 | [] -> List.to_seq [[]]
 | x :: xs ->
@@ -10,6 +11,7 @@ let rec index_seq = function
     end sub
   end nats
 
+(* ids of tile *)
 let subvector_seq xs prec = 
   let seq = index_seq (List.map (fun x -> x - (2 * prec)) xs) in
   Seq.map begin fun x -> 

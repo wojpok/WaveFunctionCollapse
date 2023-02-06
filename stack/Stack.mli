@@ -7,6 +7,7 @@ module type S = sig
   type key
   type t
 
+  (* initial entropy -> sequence of all emelents -> stack *)
   val of_seq : float -> key Seq.t -> t
   val pop_random : int -> t -> t * key option
   

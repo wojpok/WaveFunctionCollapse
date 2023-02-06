@@ -56,7 +56,7 @@ module DimOption = Dim.Make(struct type t = Key.t option end)
 module Dim       = Dim.Make(Key)
 
 
-(* konwerter między modułami *)
+(* trans-module conversion *)
 let doptlist_of_dgrid : type a b c d. (a, b) DimOption.dim_descriptor -> (c, d) Grid.dim_descriptor -> (Grid.t -> DimOption.t) -> d -> a =
   fun desc grid_desc f grid ->
   let xss : c = Grid.dlist_of_dvector grid_desc grid in
@@ -78,11 +78,12 @@ end
 
 module Stack = Stack.Make(Index)
 
+(* main loop *)
 let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descriptor -> (e, f) DimOption.dim_descriptor -> config -> a -> e =
 
   fun desc grid_desc optdesc conf inp ->
 
-    (* Monada stanów obliczeń *)
+    (* state monad *)
     let module Computation = struct
                   (* seed  grid     stack      backtracking             counter 
       type ('a) t = (int * Grid.t * Stack.t * (Grid.t * Stack.t) list * int -> 'a * int * Grid.t * Stack.t * (Grid.t * Stack.t) list * int)
@@ -95,21 +96,19 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
       let (>>=)   = bind
       let (let* ) = bind
 
-      (* Dodatkowy lukier syntaktyczny na x >>= fun () -> y 
-       * Podobno operator >>> jest wykorzystywany przez wzorzec Arrow
-       * Ale nie występuje tu żaden konflikt ponieważ nie używam tego wzorca *)
+      (* Syntacting sugar for (x >>= fun () -> y )*)
       let (>>>) a b = bind a (fun () -> b)
 
       let run m (seed, grid, stack, bt, cnt) = 
         let (res, _, _, _, _, _) = m (Rand.hash seed, grid, stack, bt, cnt) in res
 
-      (* losowanie wartości *)
+      (* random value *)
       let random (seed, grid, stack, bt, cnt) = (seed, Rand.hash seed, grid, stack, bt, cnt)
       
       let getStack   (seed, grid, stack, bt, cnt) = (stack, seed, grid, stack, bt, cnt)
       let putStack stack (seed, grid, _, bt, cnt) = ((),    seed, grid, stack, bt, cnt)
       
-      (* wyciąganie losowego elemntu ze stosu zgodnie z heurystyką minimalnej entropii *)
+      (* poping minimal element with minimal entropy heuristic *)
       let popRandom = 
         random   >>= fun r ->
         getStack >>= fun stack ->
@@ -117,7 +116,7 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
         putStack stack >>>
         return el
       
-      (* zmniejszanie entropii niezaobserwowanych komórek*)
+      (* key decreasing *)
       let decreaseKey f t k =
         getStack >>= fun s ->
         putStack @@ Stack.decrease_key f t k s
@@ -126,7 +125,7 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
       let putGrid grid  (seed, _,    stack, bt, cnt) = ((),    seed, grid, stack, bt, cnt)
       let getGridAsList (seed, grid, stack, bt, cnt) = (doptlist_of_dgrid optdesc grid_desc key_of_cell grid,
                                                                seed, grid, stack, bt, cnt)
-      (* indexowanie w siatce *)
+      (* indexing *)
       let getFromGrid inds =
         getGrid >>= fun grid ->
         let el = Grid.mindex grid_desc inds grid in
@@ -142,7 +141,7 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
       let getCnt     (seed, grid, stack, bt, cnt) = (cnt, seed, grid, stack, bt, cnt)
       let putCnt cnt (seed, grid, stack, bt, _)   = ((),  seed, grid, stack, bt, cnt)
       
-      (* Zapamiętywanie stanu obliczeń *)
+      (* Computation state *)
       let storeState =
         getGrid  >>= fun grid ->
         getStack >>= fun stack -> 
@@ -151,7 +150,7 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
         getCnt   >>= fun c -> 
         putCnt (c - 1)
       
-      (* przywracanie wscześniejszego stanu obliczeń *)
+      (* Restoring past computation state *)
       let backtrack n =
         getBt >>= fun bt ->
         match List.nth_opt bt n with
@@ -162,7 +161,7 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
       
     end in
 
-    (* pomocnicza funkcja do wyświetlania obecnego stanu obliczeń *)
+    (* displaying *)
     let helper xss = 
       let str = DimOption.string_of_dlist optdesc Key.stringify Key.newline xss in
       ignore @@ Sys.command ("echo -e \"" ^ str ^ "\"")
@@ -198,6 +197,7 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
     let grid = Grid.initialize_dvector grid_desc (Unobserved entropy) grid_size in
     let stack = Stack.of_seq initial_entropy @@ Iter.index_seq grid_size in
     
+    (* Interractive repl *)
     let open Computation in
     let rec console () =
       let () = print_string "WFC $ "; flush stdout in
@@ -234,6 +234,7 @@ let wfc : type a b c d e f. (a, b) Dim.dim_descriptor -> (c, d) Grid.dim_descrip
       let neight = Iter.propagate_collapse grid_size precision inds in
 
       let rec iter = function
+      (* for each neighbouring cell we take current state ang propagare information *)
       | [] -> return ()
       | (inds, offset) :: xs ->
         getFromGrid inds >>= fun el ->

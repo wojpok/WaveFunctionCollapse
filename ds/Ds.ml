@@ -32,6 +32,7 @@ type color =
 type node =
 | Leaf
 | Node of color * key * tree * tree
+(* node stores size of subtree this allows for quick indexation *)
 and tree = int * node
 
 let empty = 0, Leaf
@@ -41,8 +42,7 @@ let singleton el =
 
 type t = tree
 
-(* Autor balansowania -> https://courses.cs.cornell.edu/cs3110/2021sp/textbook/eff/rb.html *)
-
+(* Simple balancing - if there are 2 consecutive red nodes - split them into black nodes *)
 let balance = function
 | cg, Node(Black, z,          (_, Node(Red, y,          (_, Node(Red, x, (ca, a), (cb, b))), (cc, c))), (cd, d)) 
 | cg, Node(Black, z,          (_, Node(Red, x, (ca, a), (_, Node(Red, y, (cb, b), (cc, c)))         )), (cd, d))
@@ -87,14 +87,6 @@ let rec depth = function
 | _, Leaf -> 0
 | _, Node(_, _, l, r) ->
   1 + (Int.max (depth l) (depth r))
-
-  (*
-let rec init n t =
-  if n < 0 then
-    t
-  else
-    init (n - 1) @@ insert n t
-*)
 
 let cardinal (c, _) = c
 

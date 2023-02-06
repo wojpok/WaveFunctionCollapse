@@ -1,3 +1,4 @@
+(* simple module example *)
 type pixel8 =
 | Black
 | Blue

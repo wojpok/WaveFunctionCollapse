@@ -1,4 +1,5 @@
 
+(* Modules *)
 module Pixel8Wfc = Wfc.Make(Pixel8)
 
 module StringWfc = Wfc.Make (
@@ -13,6 +14,9 @@ module StringWfc = Wfc.Make (
 		let newline = "\n"
 	end
 )
+
+(* Maps *)
+
 
 let pixel_hatches = let open Pixel8 in [
 	[White;White;White;White;Cyan;White;White;White;White;White;Cyan;White;White;White;Cyan;White;];
@@ -91,6 +95,8 @@ let pixel_flags = let open Pixel8 in [
 ]
 
 let list_of_string x = String.to_seq x |> List.of_seq
+
+(* Strings *)
 
 let string_lorem = list_of_string
 "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Mi proin sed libero enim sed faucibus turpis in eu. Ullamcorper velit sed ullamcorper morbi tincidunt. Netus et malesuada fames ac turpis egestas. Pretium fusce id velit ut. Eu non diam phasellus vestibulum lorem sed risus ultricies tristique. Tortor condimentum lacinia quis vel. Amet tellus cras adipiscing enim eu turpis egestas. Bibendum est ultricies integer quis auctor elit sed. Mi proin sed libero enim sed faucibus turpis. Bibendum ut tristique et egestas. Porta lorem mollis aliquam ut porttitor leo a diam sollicitudin. Sem fringilla ut morbi tincidunt augue interdum velit.

@@ -1,5 +1,4 @@
-(* Nie wpadłem na żaden eleganci sposób realizacji permutacji kafli
- * Zadowoliłem się tym podejściem  *)
+(* This is the simplest solution i could this of  *)
 
 let d1p1id : ('a list -> 'a list) list = [
   (* identity *)

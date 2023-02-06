@@ -6,7 +6,7 @@ type 'a node =
 
 type 'a vector = (int * 'a node)
 
-(* Createn empty array of size and fills with defauld element *)
+(* Create an empty array of given size and fill with default element *)
 val empty : int -> 'a -> 'a vector
 
 (* Builds and maps elements from list *)

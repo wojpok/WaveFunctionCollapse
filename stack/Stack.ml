@@ -22,6 +22,7 @@ module Make(Key : OrderedType) : S with type key = Key.t = struct
 
   module L = Map.Make(Float)
 
+  (* Map of entropy levels with density set of elements  *)
   type t = RS.t L.t
 
   let of_seq : float -> key Seq.t -> t = 

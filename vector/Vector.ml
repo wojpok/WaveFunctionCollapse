@@ -96,7 +96,7 @@ let update id trans (len, vec) =
     | 0 -> 
       let nv = trans el in
       Node(ic, nv, l, r)
-    | -1 -> (* id jest większe*)
+    | -1 -> (* id is greater *)
       let n = iter r in
       Node(ic, el, l, n)
     | _ -> 

@@ -1,8 +1,10 @@
+(* config *)
 type config = Conf.config
 
 val default_config : config
 val create_config  : unit -> config
 
+(* ordered stringable module *)
 module type OrderedStringableType = sig
   type t
   val compare : t -> t -> int
@@ -13,6 +15,7 @@ end
 module type S = sig
   type key
 
+  (* set of required functions *)
   val wfc1 : config -> key list            -> key option list
   val wfc2 : config -> key list list       -> key option list list
   val wfc3 : config -> key list list list  -> key option list list list

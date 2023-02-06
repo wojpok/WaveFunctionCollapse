@@ -48,11 +48,6 @@ open Vector
 
   type ('a, 'b) dim_descriptor = 'a listDim * 'b vecDim
 
-  (*
-  let dim1 = (ListDim(ListRoot)),                   (VecDim(VecRoot))
-  let dim2 = (ListDim(ListDim(ListRoot))),          (VecDim(VecDim(VecRoot)))
-  let dim3 = (ListDim(ListDim(ListDim(ListRoot)))), (VecDim(VecDim(VecDim(VecRoot))))
-*)
   let rec dvector_of_dlist : type a b. (a, b) dim_descriptor -> a -> b =
     fun desc mxs -> 
       match desc with
@@ -124,7 +119,7 @@ open Vector
           (fun x acc -> msub_list_append (ListRoot, tpb) (List.tl inds) x acc)
           subl
           acc
-      | _ -> failwith "msub_list_append - 'All fucked up' ~ Iggy Pop"
+      | _ -> failwith "msub_list_append - error"
 
   let msub_list desc inds vec = msub_list_append desc inds vec []
 
@@ -134,17 +129,6 @@ open Vector
       | (_, VecRoot) -> []
       | (_, VecDim tpb) ->
         (size vec) :: (msize (ListRoot, tpb) (find 0 vec))
-
-        (*
-  let basic_map = dvector_of_dlist dim2 
-    [
-      [1; 2; 3; 4; 5];
-      [6; 7; 8; 9; 0];
-      [1; 2; 3; 4; 5];
-      [6; 7; 8; 9; 0];
-      [1; 2; 3; 4; 5]
-    ]
-  *)
 
   let rec get_subvector_ids xs size =
     let rec iter n xss acc =

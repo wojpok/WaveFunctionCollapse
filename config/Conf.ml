@@ -4,6 +4,7 @@ type config = bool * int * (bool * bool) * int  * int list
 
 let default = (false, 1, (true, true), 0, [16; 16])
 
+(* monad with 5 states *)
 module ConfigMonad = struct
   (*type ('s1, 's2, 's3, 's4, 's5, 'a) t = ('s1 * 's2 * 's3 * 's4 * 's5 -> 'a * 's1 * 's2 * 's3 * 's4 * 's5)*)
 
@@ -34,6 +35,7 @@ open ConfigMonad
 
 let create_config () = 
   let rec interp () = 
+    (* display state *)
     Printf.printf "\n";
     getRepl >>= fun repl ->         Printf.printf "Repl: %b\n" repl;
     getPrec >>= fun prec ->         Printf.printf "Precision: %d\n" prec;
@@ -44,6 +46,7 @@ let create_config () =
     let line = read_line () in
     let args = Str.split (Str.regexp " +") line in
     let() = ignore args in
+    (* command interpretation *)
     match args with
     | ["done"] ->
       return ()
